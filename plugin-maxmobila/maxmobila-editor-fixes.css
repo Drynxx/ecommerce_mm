@@ -1,0 +1,440 @@
+/* ========================================================
+   MaxMobila Gutenberg Visual Editor Styles & Layout Fixes
+   Ensures authentic visual fidelity inside Gutenberg canvas iframe
+   ======================================================== */
+
+:root,
+body,
+.editor-styles-wrapper,
+.block-editor-block-list__layout {
+  --ink: #1A1A1A;
+  --ink2: #2C2C2C;
+  --red: #E2001A;
+  --red2: #BE0016;
+  --gold: #C99A3E;
+  --gold2: #F5EBD6;
+  --bg: #F6F6F6;
+  --card: #FFFFFF;
+  --mut: #666666;
+  --line: #E5E5E5;
+  --soft: #F0F0F0;
+  --ok: #1E7E34;
+  --okbg: #E6F4EA;
+  --amber: #B25E00;
+  --amberbg: #FEF3E2;
+  --blue: #1D5B96;
+  --bluebg: #E8F0F8;
+  --r: 6px;
+  --sh: 0 2px 10px rgba(0,0,0,.05);
+  --sh2: 0 10px 28px rgba(0,0,0,.11);
+  --fd: 'Montserrat', "Segoe UI", Roboto, Arial, sans-serif;
+  --fb: 'Inter', "Segoe UI", Roboto, Arial, sans-serif;
+  font-family: var(--fb) !important;
+  color: var(--ink) !important;
+}
+
+.editor-styles-wrapper {
+  background-color: var(--bg) !important;
+}
+
+/* Allow MaxMobila blocks to span full available editor width */
+.editor-styles-wrapper .wp-block[data-type^="maxmobila/"],
+.editor-styles-wrapper [data-type^="maxmobila/"] {
+  max-width: 100% !important;
+  width: 100% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+.maxmobila-block-wrapper {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Visual Block Header Badge in Gutenberg Editor */
+.maxmobila-editor-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--ink);
+  color: #fff;
+  font-family: var(--fb);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  opacity: 0.9;
+}
+.maxmobila-editor-badge i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+}
+
+/* Prevent accidental link clicks when editing in Gutenberg */
+.maxmobila-block-wrapper a {
+  pointer-events: none;
+}
+
+/* Clear visual focus on inline-editable elements */
+.maxmobila-block-wrapper [contenteditable="true"] {
+  min-height: 1em;
+  cursor: text;
+}
+.maxmobila-block-wrapper [contenteditable="true"]:hover {
+  outline: 1.5px dashed rgba(201, 154, 62, 0.7);
+  border-radius: 4px;
+}
+.maxmobila-block-wrapper [contenteditable="true"]:focus {
+  outline: 2px solid var(--gold) !important;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.75);
+}
+
+.editor-styles-wrapper h1,
+.editor-styles-wrapper h2,
+.editor-styles-wrapper h3 {
+  font-family: var(--fd) !important;
+  letter-spacing: -.5px;
+  line-height: 1.08;
+}
+
+/* ----------------------------------------------------
+   CATALOG LAYOUT & FILTERS FIXES IN EDITOR
+   ---------------------------------------------------- */
+.editor-styles-wrapper .wrap.shop,
+.editor-styles-wrapper .shop {
+  display: grid !important;
+  grid-template-columns: 240px 1fr !important;
+  gap: 22px !important;
+  align-items: start !important;
+  padding: 16px 0 40px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 900px) {
+  .editor-styles-wrapper .wrap.shop,
+  .editor-styles-wrapper .shop {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.editor-styles-wrapper .filters {
+  align-self: start !important;
+  background: #fff !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 14px !important;
+  padding: 16px !important;
+  box-sizing: border-box !important;
+}
+
+.editor-styles-wrapper .filters h4 {
+  margin: 14px 0 6px !important;
+  font-family: var(--fb) !important;
+  font-weight: 800 !important;
+  font-size: 11px !important;
+  letter-spacing: 1.4px !important;
+  text-transform: uppercase !important;
+  color: var(--mut) !important;
+}
+.editor-styles-wrapper .filters h4:first-child {
+  margin-top: 0 !important;
+}
+
+.editor-styles-wrapper .filters button.opt {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  width: 100% !important;
+  border: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 7px 10px !important;
+  border-radius: 8px !important;
+  font-family: var(--fb) !important;
+  font-weight: 600 !important;
+  font-size: 13.5px !important;
+  text-align: left !important;
+  margin: 2px 0 !important;
+  color: var(--ink) !important;
+  cursor: pointer !important;
+  transition: .12s !important;
+  box-sizing: border-box !important;
+}
+.editor-styles-wrapper .filters button.opt:hover {
+  background: var(--bg) !important;
+}
+.editor-styles-wrapper .filters button.opt.on {
+  background: var(--ink) !important;
+  color: #fff !important;
+}
+
+.editor-styles-wrapper .toolbar {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 14px !important;
+  gap: 10px !important;
+  padding-bottom: 4px !important;
+}
+.editor-styles-wrapper .toolbar b {
+  font-size: 14px !important;
+  font-weight: 800 !important;
+}
+
+/* ----------------------------------------------------
+   PRODUCT CARDS (.pc) IN EDITOR
+   ---------------------------------------------------- */
+.editor-styles-wrapper .grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)) !important;
+  gap: 16px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.editor-styles-wrapper .pc {
+  background: #fff !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  position: relative !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.editor-styles-wrapper .pc .ph {
+  height: 200px !important;
+  display: block !important;
+  padding: 38px 16px 12px !important;
+  background: #fff !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.editor-styles-wrapper .pc .ph img {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain !important;
+  display: block !important;
+  margin: 0 auto !important;
+}
+
+.editor-styles-wrapper .pc .tl {
+  position: absolute !important;
+  top: 10px !important;
+  left: 10px !important;
+  z-index: 2 !important;
+}
+
+.editor-styles-wrapper .pc .tr {
+  position: absolute !important;
+  top: 10px !important;
+  right: 10px !important;
+  z-index: 2 !important;
+}
+
+.editor-styles-wrapper .st {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  border-radius: 6px !important;
+  padding: 3px 8px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: .3px !important;
+  text-transform: uppercase !important;
+  line-height: 1.2 !important;
+}
+.editor-styles-wrapper .st:before {
+  content: "" !important;
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  background: currentColor !important;
+  display: inline-block !important;
+}
+.editor-styles-wrapper .st.nou { background: var(--okbg) !important; color: var(--ok) !important; }
+.editor-styles-wrapper .st.resigilat { background: var(--bluebg) !important; color: var(--blue) !important; }
+.editor-styles-wrapper .st.expus { background: var(--gold2) !important; color: #7A5A17 !important; }
+.editor-styles-wrapper .st.defecte { background: var(--amberbg) !important; color: var(--amber) !important; }
+
+.editor-styles-wrapper .off {
+  background: var(--red) !important;
+  color: #fff !important;
+  font-family: var(--fd) !important;
+  font-weight: 900 !important;
+  font-size: 12px !important;
+  border-radius: 6px !important;
+  padding: 4px 7px !important;
+  line-height: 1 !important;
+  letter-spacing: .2px !important;
+}
+
+.editor-styles-wrapper .pc .bd {
+  padding: 10px 14px 14px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+  flex: 1 !important;
+  border-top: 1px solid var(--soft) !important;
+  box-sizing: border-box !important;
+}
+
+.editor-styles-wrapper .pc-brand {
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.7px !important;
+  color: var(--mut) !important;
+  line-height: 1.1 !important;
+}
+
+.editor-styles-wrapper .pc h3 {
+  font-family: var(--fb) !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  line-height: 1.3 !important;
+  letter-spacing: 0 !important;
+  margin: 2px 0 0 !important;
+  color: var(--ink) !important;
+}
+
+.editor-styles-wrapper .pc .meta {
+  font-size: 12px !important;
+  color: var(--mut) !important;
+  line-height: 1.3 !important;
+}
+
+.editor-styles-wrapper .pc .pr {
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: space-between !important;
+  margin-top: auto !important;
+  padding-top: 8px !important;
+  gap: 8px !important;
+}
+
+.editor-styles-wrapper .pc .price {
+  font-family: var(--fd) !important;
+  font-weight: 800 !important;
+  font-size: 19px !important;
+  line-height: 1 !important;
+  color: var(--red) !important;
+  letter-spacing: -.3px !important;
+}
+
+.editor-styles-wrapper .pc .was {
+  font-size: 11px !important;
+  color: var(--mut) !important;
+  margin-bottom: 2px !important;
+}
+.editor-styles-wrapper .pc .was s {
+  font-weight: 600 !important;
+}
+
+.editor-styles-wrapper .pc-acts {
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+}
+
+.editor-styles-wrapper .pc-fav {
+  border: 1px solid var(--line) !important;
+  background: #fff !important;
+  color: var(--ink) !important;
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 3px !important;
+  display: grid !important;
+  place-items: center !important;
+  font-size: 15px !important;
+  padding: 0 !important;
+}
+
+.editor-styles-wrapper .pc .addb {
+  border: 0 !important;
+  background: var(--red) !important;
+  color: #fff !important;
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 3px !important;
+  display: grid !important;
+  place-items: center !important;
+  font-size: 14px !important;
+  line-height: 1 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  flex: 0 0 34px !important;
+  cursor: pointer !important;
+}
+
+/* ----------------------------------------------------
+   HERO BANNER, CATEGORIES, STATES, SHOWROOM IN EDITOR
+   ---------------------------------------------------- */
+.editor-styles-wrapper .catgrid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)) !important;
+  gap: 12px !important;
+}
+.editor-styles-wrapper .cat {
+  background: #fff !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 12px !important;
+  padding: 12px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+.editor-styles-wrapper .cat .im {
+  height: 120px !important;
+  display: block !important;
+}
+.editor-styles-wrapper .cat .im img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+}
+
+.editor-styles-wrapper .states {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important;
+  gap: 12px !important;
+}
+.editor-styles-wrapper .states a {
+  background: #fff !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+.editor-styles-wrapper .band {
+  background: var(--ink) !important;
+  color: #fff !important;
+  border-radius: 16px !important;
+  padding: 28px !important;
+  display: grid !important;
+  grid-template-columns: 1.4fr 1fr !important;
+  gap: 24px !important;
+  align-items: center !important;
+}
+@media (max-width: 800px) {
+  .editor-styles-wrapper .band {
+    grid-template-columns: 1fr !important;
+  }
+}
