@@ -631,7 +631,6 @@ function maxmobila_render_card_html( $p, $cat_map = array() ) {
     $html .= '</div>';
     $html .= '<div class="pc-acts">';
     $html .= '<button type="button" class="pc-fav" onclick="toggleFav(' . "'" . esc_attr( $p['id'] ) . "'" . ',this)" aria-label="Favorite" title="Adaugă la favorite">♡</button>';
-    $html .= '<button type="button" class="addb" onclick="add(' . "'" . esc_attr( $p['id'] ) . "'" . ')" aria-label="Adaugă în coș" title="Adaugă în coș">' . $cart_icon . '</button>';
     $html .= '</div>';
     $html .= '</div>';
     $html .= '</div>';

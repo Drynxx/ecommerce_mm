@@ -62,8 +62,7 @@
             el('div', { className: 'price num' }, formatLei(p.priceRON))
           ),
           el('div', { className: 'pc-acts' },
-            el('button', { className: 'pc-fav', 'aria-label': 'Favorite' }, '♡'),
-            el('button', { className: 'addb', 'aria-label': 'Adaugă în coș' }, '🛒')
+            el('button', { className: 'pc-fav', 'aria-label': 'Favorite' }, '♡')
           )
         )
       )

@@ -866,6 +866,7 @@
 
 const TODAY = new Date();
 const S = DATA.store, C = DATA.calc;
+const ONLINE_ORDER_ENABLED = false;
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const lei = n => Math.round(n).toLocaleString('ro-RO') + ' lei';
@@ -961,17 +962,17 @@ const logoFooterHTML = `<img src="${logoDarkUrl}" alt="MaxMobila Outlet" class="
 
 function renderTop(){
   const { page, q } = parse(); const cat = page === 'produse' ? q.get('cat') : page === 'produs' ? (byId(P, parse().id) || {}).cat : '';
-  document.getElementById('promo').innerHTML = `<span>OUTLET · până la −${maxDisc}% față de prețul nou din Germania</span><span class="sp"></span><span class="o">Showroom & depozit în ${S.city} · Livrare în toată țara</span>`;
+  document.getElementById('promo').innerHTML = `<span>OUTLET · până la −${maxDisc}% față de prețul nou din Germania</span><span class="sp"></span><span class="o">Showroom & depozit în ${S.city} · ${ONLINE_ORDER_ENABLED ? 'Livrare în toată țara' : 'Rezervă gratuit 48h în magazin'}</span>`;
   document.getElementById('hdr').innerHTML = `<a class="logo" href="#/acasa" aria-label="MaxMobila, acasă">${logoHTML}</a>
     <form class="search" onsubmit="event.preventDefault();go('#/produse?s='+encodeURIComponent(this.s.value))"><input id="s" name="s" placeholder="Caută: canapea, pat 160, masă extensibilă…" value="${page === 'produse' ? esc(q.get('s') || '') : ''}"><button>Caută</button></form>
-    <div class="hlinks"><a class="hl" href="#/contact">${I.pin}<span class="t">Showroom</span></a><a class="hl cartb" href="#/cos">${I.cart}<span class="t">Coș</span>${count() ? `<span class="n">${count()}</span>` : ''}</a></div>`;
+    <div class="hlinks"><a class="hl" href="#/contact">${I.pin}<span class="t">Showroom</span></a>${ONLINE_ORDER_ENABLED ? `<a class="hl cartb" href="#/cos">${I.cart}<span class="t">Coș</span>${count() ? `<span class="n">${count()}</span>` : ''}</a>` : ''}</div>`;
   document.getElementById('cats').innerHTML = DATA.categories.map(c => `<a href="#/produse?cat=${c.id}" class="${cat === c.id ? 'on' : ''}">${c.name}</a>`).join('') + `<a class="hot" href="#/produse?sort=disc">Reduceri −${maxDisc}%</a>`;
 }
 function renderStatic(){
   document.getElementById('ftr').innerHTML = `<div class="wrap"><div class="cols">
     <div><a class="logo" href="#/acasa" aria-label="MaxMobila, acasă">${logoFooterHTML}</a><p style="font-size:14px;max-width:320px;margin-top:14px">Mobilă adusă direct din Germania: surplus de stoc, colecții trecute, retururi și expoziție. Showroom și depozit în ${S.city}.</p></div>
     <div><h5>Categorii</h5>${DATA.categories.slice(0, 6).map(c => `<a href="#/produse?cat=${c.id}">${c.name}</a>`).join('')}</div>
-    <div><h5>Informații</h5><a href="#/despre">Cum funcționează outlet-ul</a><a href="#/acasa?f=1">Întrebări frecvente</a><a href="#/contact">Showroom & contact</a><a href="#/cos">Coșul meu</a></div>
+    <div><h5>Informații</h5><a href="#/despre">Cum funcționează outlet-ul</a><a href="#/acasa?f=1">Întrebări frecvente</a><a href="#/contact">Showroom & contact</a>${ONLINE_ORDER_ENABLED ? '<a href="#/cos">Coșul meu</a>' : ''}</div>
     <div><h5>Contact</h5><span style="display:block;font-size:14px;user-select:all">${S.phone}</span><span style="display:block;font-size:14px;user-select:all">${S.email}</span><span style="display:block;font-size:14px">${S.address}</span></div>
   </div><div class="bot"><span>© ${TODAY.getFullYear()} ${esc(S.name)}</span></div></div>`;
 }
@@ -990,7 +991,7 @@ const card = p => {
   <div class="bd"><span class="pc-brand">COLECȚIA GERMANIA</span><a href="#/produs/${p.id}"><h3>${esc(p.name)}</h3></a>
     <div class="meta">${meta(p)}${p.dims ? `<br>${esc(p.dims)}` : ''}</div>
     <div class="pr"><div>${p.newRON > p.priceRON ? `<div class="was">Preț nou: <s>${lei(p.newRON)}</s></div>` : ''}<div class="price num">${lei(p.priceRON)}</div></div>
-      <div class="pc-acts"><button type="button" class="pc-fav ${isFav ? 'on' : ''}" onclick="toggleFav('${p.id}',this)" aria-label="Favorite" title="Adaugă la favorite">${isFav ? '♥' : '♡'}</button><button type="button" class="addb" onclick="add('${p.id}')" aria-label="Adaugă în coș" title="Adaugă în coș">${I.cart}</button></div></div></div></article>`;
+      <div class="pc-acts"><button type="button" class="pc-fav ${isFav ? 'on' : ''}" onclick="toggleFav('${p.id}',this)" aria-label="Favorite" title="Adaugă la favorite">${isFav ? '♥' : '♡'}</button>${ONLINE_ORDER_ENABLED ? `<button type="button" class="addb" onclick="add('${p.id}')" aria-label="Adaugă în coș" title="Adaugă în coș">${I.cart}</button>` : ''}</div></div></div></article>`;
 };
 const head = (title, sub, crumbs) => `<section class="pagehead"><div class="wrap"><div class="crumb"><a href="#/acasa">Acasă</a>${(crumbs || []).map(([h, l]) => ` / ${h ? `<a href="${h}">${l}</a>` : l}`).join('')}</div><h1>${title}</h1>${sub ? `<p>${sub}</p>` : ''}</div></section>`;
 
@@ -1384,7 +1385,7 @@ V.produs = (id) => {
           ${specs.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('')}
         </dl>
 
-        <details class="pd-more">
+        ${ONLINE_ORDER_ENABLED ? `<details class="pd-more">
           <summary>Comandă online</summary>
           <div class="pd-more-body">
             <p>Preferi să comanzi direct de pe site? Adaugă produsul în coș și te sunăm pentru confirmare.</p>
@@ -1398,7 +1399,7 @@ V.produs = (id) => {
             </div>
             ${montaj ? `<p class="pd-small">Montaj opțional: ${lei(montaj.priceRON)} / produs.</p>` : ''}
           </div>
-        </details>
+        </details>` : ''}
       </div>
     </div>
   </div>
@@ -1446,6 +1447,7 @@ const sumHTML = (T, act) => `<aside class="panel sum"><h3>Sumar comandă</h3>
   <div class="note">TVA inclus.${T.sub < S.freeShipOverRON ? ` Mai adaugă ${lei(S.freeShipOverRON - T.sub)} pentru livrare gratuită.` : ' Ai livrare gratuită.'}</div>${act}</aside>`;
 
 V.cos = () => {
+  if (!ONLINE_ORDER_ENABLED) return V.nf('Comenzile online nu sunt active momentan. Poți rezerva gratuit orice piesă pe pagina produsului sau pe WhatsApp și o vezi pe viu în showroom-ul din ' + esc(S.city) + '.');
   const T = totals();
   if (!T.L.length) return head('Coșul tău', null, [[null, 'Coș']]) + `<div class="wrap" style="padding:40px 20px 70px"><div class="empty"><h3>Coșul e gol</h3><p>Începe cu cele mai mari reduceri sau alege o categorie.</p><a class="btn red" href="#/produse?sort=disc">Vezi reducerile</a></div></div>`;
   return head('Coșul tău', `${count()} produse · economisești ${lei(T.was - T.sub)}`, [[null, 'Coș']]) + `<div class="wrap two"><div style="display:grid;gap:16px">
@@ -1459,6 +1461,7 @@ V.cos = () => {
 
 const JUD = ['Alba','Arad','Argeș','Bacău','Bihor','Bistrița-Năsăud','Botoșani','Brașov','Brăila','București','Buzău','Caraș-Severin','Călărași','Cluj','Constanța','Covasna','Dâmbovița','Dolj','Galați','Giurgiu','Gorj','Harghita','Hunedoara','Ialomița','Iași','Ilfov','Maramureș','Mehedinți','Mureș','Neamț','Olt','Prahova','Satu Mare','Sălaj','Sibiu','Suceava','Teleorman','Timiș','Tulcea','Vaslui','Vâlcea','Vrancea'];
 V.checkout = () => {
+  if (!ONLINE_ORDER_ENABLED) return V.nf('Comenzile online nu sunt active momentan. Poți rezerva gratuit orice piesă pe pagina produsului sau pe WhatsApp și o vezi pe viu în showroom-ul din ' + esc(S.city) + '.');
   const T = totals(); if (!T.L.length) return V.cos();
   const f = (k, l, req, x) => { x = x || {}; const cls = `inp ${ERR.includes(k) ? 'err' : ''}`;
     const ctl = x.select ? `<select id="f-${k}" class="${cls}" onchange="FORM.${k}=this.value"><option value="">Alege…</option>${x.select.map(o => `<option ${FORM[k] === o ? 'selected' : ''}>${o}</option>`).join('')}</select>`
