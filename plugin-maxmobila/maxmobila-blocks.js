@@ -170,7 +170,8 @@
             ),
             el('div', { className: 'collage' },
               heroProds.map((p, i) => {
-                const disc = Math.round((1 - p.priceRON / p.newRON) * 100);
+                const disc = (p.newRON && p.priceRON && p.newRON > p.priceRON)
+                  ? Math.round((1 - p.priceRON / p.newRON) * 100) : 0;
                 return el('a', { className: 'tile ' + (i === 0 ? 'big' : ''), key: p.id, href: '#' },
                   el('img', { src: getImgUrl(p), alt: p.name }),
                   el('span', { className: 'off' }, '−' + disc + '%'),
@@ -263,8 +264,8 @@
     edit: function(props) {
       const { attributes, setAttributes } = props;
       const sorted = [...(DATA.products || [])].sort((a, b) => {
-        const da = (1 - a.priceRON / a.newRON);
-        const db = (1 - b.priceRON / b.newRON);
+        const da = a.newRON > 0 ? (1 - a.priceRON / a.newRON) : 0;
+        const db = b.newRON > 0 ? (1 - b.priceRON / b.newRON) : 0;
         return db - da;
       }).slice(0, attributes.limit || 8);
 

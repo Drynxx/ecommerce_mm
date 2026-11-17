@@ -66,6 +66,151 @@ function maxmobila_add_favicon() {
 }
 
 // ----------------------------------------------------
+// ROUTING & REWRITE RULES (CURATE LINKS PENTRU SOCIAL MEDIA)
+// ----------------------------------------------------
+add_action( 'init', 'maxmobila_register_product_routes' );
+function maxmobila_register_product_routes() {
+    add_rewrite_rule( '^produs/([^/]+)/?$', 'index.php?maxmobila_produs=$matches[1]', 'top' );
+    if ( get_option( 'maxmobila_rewrite_flushed_v2' ) !== '1' ) {
+        flush_rewrite_rules( false );
+        update_option( 'maxmobila_rewrite_flushed_v2', '1' );
+    }
+}
+
+add_filter( 'query_vars', function( $vars ) {
+    $vars[] = 'maxmobila_produs';
+    return $vars;
+} );
+
+add_action( 'template_redirect', function() {
+    global $wp_query;
+    $prod_id = sanitize_text_field( $_GET['produs'] ?? '' );
+    if ( empty( $prod_id ) ) {
+        $prod_id = sanitize_text_field( get_query_var( 'maxmobila_produs', '' ) );
+    }
+    if ( empty( $prod_id ) && ! empty( $_SERVER['REQUEST_URI'] ) ) {
+        $req_path = strtok( $_SERVER['REQUEST_URI'], '?' );
+        if ( preg_match( '#/produs/([a-zA-Z0-9_-]+)/?$#', $req_path, $m ) ) {
+            $prod_id = sanitize_text_field( $m[1] );
+        }
+    }
+    if ( ! empty( $prod_id ) ) {
+        set_query_var( 'maxmobila_produs', $prod_id );
+        if ( isset( $wp_query ) && is_object( $wp_query ) ) {
+            $wp_query->is_404 = false;
+        }
+        status_header( 200 );
+    }
+}, 1 );
+
+// ----------------------------------------------------
+// DYNAMIC OPEN GRAPH META TAGS (FACEBOOK & WHATSAPP SHARING)
+// ----------------------------------------------------
+add_action( 'wp_head', 'maxmobila_output_dynamic_opengraph', 2 );
+function maxmobila_output_dynamic_opengraph() {
+    static $executed = false;
+    if ( $executed ) {
+        return;
+    }
+    $executed = true;
+
+    $data = maxmobila_get_active_data();
+    $store = $data['store'];
+    $products = $data['products'] ?? array();
+
+    // Identifică dacă suntem pe o pagină de produs (/produs/ID sau ?produs=ID)
+    $prod_id = sanitize_text_field( $_GET['produs'] ?? '' );
+    if ( empty( $prod_id ) ) {
+        $prod_id = sanitize_text_field( get_query_var( 'maxmobila_produs', '' ) );
+    }
+    if ( empty( $prod_id ) && ! empty( $_SERVER['REQUEST_URI'] ) ) {
+        $req_path = strtok( $_SERVER['REQUEST_URI'], '?' );
+        if ( preg_match( '#/produs/([a-zA-Z0-9_-]+)/?$#', $req_path, $m ) ) {
+            $prod_id = sanitize_text_field( $m[1] );
+        }
+    }
+
+    $found_prod = null;
+    if ( ! empty( $prod_id ) ) {
+        $needle = strtolower( $prod_id );
+        foreach ( $products as $p ) {
+            if (
+                strtolower( (string) ( $p['id'] ?? '' ) ) === $needle ||
+                ( ! empty( $p['wc_id'] ) && strtolower( (string) $p['wc_id'] ) === $needle ) ||
+                strtolower( sanitize_title( $p['name'] ?? '' ) ) === $needle
+            ) {
+                $found_prod = $p;
+                break;
+            }
+        }
+    }
+
+    if ( $found_prod ) {
+        $p = $found_prod;
+        $disc = ( ! empty( $p['newRON'] ) && ! empty( $p['priceRON'] ) && $p['newRON'] > $p['priceRON'] )
+            ? round( ( 1 - $p['priceRON'] / $p['newRON'] ) * 100 ) : 0;
+
+        $price_fmt = number_format( (float) $p['priceRON'], 0, ',', '.' ) . ' lei';
+        $title = $p['name'] . ' (Germania) — ' . $price_fmt;
+        if ( $disc > 0 ) {
+            $title .= ' (−' . $disc . '%)';
+        }
+
+        $state_labels = array(
+            'nou'       => 'Nou (ambalat)',
+            'resigilat' => 'Resigilat (verificat)',
+            'expus'     => 'Expus în magazin',
+            'defecte'   => 'Mici defecte',
+        );
+        $st_text = $state_labels[ $p['state'] ?? 'nou' ] ?? ucfirst( $p['state'] ?? 'Nou' );
+
+        $desc = 'Preț outlet: ' . $price_fmt . ' | Stare: ' . $st_text . ' | Showroom & Depozit în ' . $store['city'] . '. Rezervă piesa gratuit fără card bancar!';
+        if ( ! empty( $p['material'] ) || ! empty( $p['color'] ) ) {
+            $desc .= ' Material: ' . $p['material'] . ', Culoare: ' . $p['color'] . '.';
+        }
+
+        $img_url = '';
+        if ( ! empty( $p['custom_img'] ) ) {
+            $img_url = $p['custom_img'];
+        } elseif ( ! empty( $p['img'] ) ) {
+            $img_url = MAXMOBILA_ASSETS_URL . 'images/' . $p['img'] . '.webp';
+        } else {
+            $img_url = MAXMOBILA_ASSETS_URL . 'images/logo-maxmobila.png';
+        }
+
+        $prod_url = home_url( '/produs/' . $p['id'] );
+
+        echo "\n" . '<!-- MaxMobila Dynamic Open Graph (WhatsApp / Facebook / Social Share) -->' . "\n";
+        echo '<meta property="og:type" content="product">' . "\n";
+        echo '<meta property="og:title" content="' . esc_attr( $title ) . '">' . "\n";
+        echo '<meta property="og:description" content="' . esc_attr( $desc ) . '">' . "\n";
+        echo '<meta property="og:image" content="' . esc_url( $img_url ) . '">' . "\n";
+        echo '<meta property="og:image:width" content="800">' . "\n";
+        echo '<meta property="og:image:height" content="600">' . "\n";
+        echo '<meta property="og:url" content="' . esc_url( $prod_url ) . '">' . "\n";
+        echo '<meta property="og:site_name" content="' . esc_attr( $store['name'] . ' Outlet' ) . '">' . "\n";
+        echo '<meta property="product:price:amount" content="' . esc_attr( $p['priceRON'] ) . '">' . "\n";
+        echo '<meta property="product:price:currency" content="RON">' . "\n";
+        echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
+        echo '<meta name="twitter:title" content="' . esc_attr( $title ) . '">' . "\n";
+        echo '<meta name="twitter:description" content="' . esc_attr( $desc ) . '">' . "\n";
+        echo '<meta name="twitter:image" content="' . esc_url( $img_url ) . '">' . "\n";
+    } else {
+        $site_title = $store['name'] . ' Outlet — Mobilă din Germania în ' . $store['city'];
+        $site_desc  = 'Mobilă adusă direct din Germania la prețuri de outlet. Vezi pe viu canapelele și paturile în depozitul nostru din ' . $store['city'] . '. Rezervă fără card!';
+        $site_img   = MAXMOBILA_ASSETS_URL . 'images/logo-maxmobila.png';
+
+        echo "\n" . '<!-- MaxMobila Store Open Graph -->' . "\n";
+        echo '<meta property="og:type" content="website">' . "\n";
+        echo '<meta property="og:title" content="' . esc_attr( $site_title ) . '">' . "\n";
+        echo '<meta property="og:description" content="' . esc_attr( $site_desc ) . '">' . "\n";
+        echo '<meta property="og:image" content="' . esc_url( $site_img ) . '">' . "\n";
+        echo '<meta property="og:url" content="' . esc_url( home_url( '/' ) ) . '">' . "\n";
+        echo '<meta property="og:site_name" content="' . esc_attr( $store['name'] . ' Outlet' ) . '">' . "\n";
+    }
+}
+
+// ----------------------------------------------------
 // ASSET MANAGEMENT FRONT-END (SCRIPTS & STYLES)
 // ----------------------------------------------------
 add_action( 'wp_enqueue_scripts', 'maxmobila_enqueue_assets' );
@@ -205,7 +350,28 @@ function maxmobila_add_editor_styles() {
 // ----------------------------------------------------
 // PRELUARE DATE ACTIVE (WooCommerce sau Fallback)
 // ----------------------------------------------------
+function maxmobila_normalize_state_slug( $raw_state, $fallback = 'nou' ) {
+    $v = strtolower( trim( (string) $raw_state ) );
+    if ( $v === '' ) {
+        return $fallback ?: 'nou';
+    }
+    if ( strpos( $v, 'defect' ) !== false ) {
+        return 'defecte';
+    }
+    if ( strpos( $v, 'resigil' ) !== false ) {
+        return 'resigilat';
+    }
+    if ( strpos( $v, 'expu' ) !== false || strpos( $v, 'expo' ) !== false ) {
+        return 'expus';
+    }
+    if ( strpos( $v, 'nou' ) !== false ) {
+        return 'nou';
+    }
+    return $v;
+}
+
 function maxmobila_get_active_data() {
+    static $sync_reentry = false;
     $defaults = maxmobila_get_default_data();
 
     // Actualizează datele magazinului din setările WP
@@ -220,11 +386,33 @@ function maxmobila_get_active_data() {
     $defaults['store']['warrantyYears']   = intval( get_option( 'maxmobila_warranty', $defaults['store']['warrantyYears'] ) );
 
     // Dacă WooCommerce este activ și are produse publicate, mapăm produsele reale
-    if ( class_exists( 'WooCommerce' ) ) {
+    if ( class_exists( 'WooCommerce' ) && function_exists( 'wc_get_product' ) ) {
+        // Repară automat o singură dată produsele deja importate fără imagini / meta
+        if ( ! $sync_reentry && get_option( 'maxmobila_wc_sync_fixed_v2' ) !== '1' && function_exists( 'wc_get_product_id_by_sku' ) ) {
+            if ( wc_get_product_id_by_sku( 'm00' ) ) {
+                $sync_reentry = true;
+                update_option( 'maxmobila_wc_sync_fixed_v2', '1' );
+                maxmobila_sync_products_to_woocommerce();
+                $sync_reentry = false;
+            }
+        }
+
+        $default_by_id = array();
+        foreach ( $defaults['products'] as $dp ) {
+            $default_by_id[ strtolower( (string) $dp['id'] ) ] = $dp;
+        }
+
+        $cat_index = array();
+        foreach ( $defaults['categories'] as $idx => $cat_item ) {
+            $cat_index[ $cat_item['id'] ] = $idx;
+        }
+
         $wc_products = get_posts( array(
             'post_type'      => 'product',
             'post_status'    => 'publish',
-            'posts_per_page' => 100,
+            'posts_per_page' => -1,
+            'orderby'        => 'ID',
+            'order'          => 'ASC',
         ) );
 
         if ( ! empty( $wc_products ) ) {
@@ -233,38 +421,141 @@ function maxmobila_get_active_data() {
                 $wc_p = wc_get_product( $p_post->ID );
                 if ( ! $wc_p ) continue;
 
-                $cats = wp_get_post_terms( $p_post->ID, 'product_cat', array( 'fields' => 'slugs' ) );
-                $cat_slug = ! empty( $cats ) ? $cats[0] : 'canapele';
+                $sku = trim( (string) $wc_p->get_sku() );
+                $sku_key = strtolower( $sku );
+                $def_p = ( $sku_key !== '' && isset( $default_by_id[ $sku_key ] ) ) ? $default_by_id[ $sku_key ] : null;
 
-                $state = $wc_p->get_attribute( 'stare' );
-                if ( ! $state ) $state = 'nou';
+                $terms = wp_get_post_terms( $p_post->ID, 'product_cat' );
+                $chosen_term = null;
+                if ( ! is_wp_error( $terms ) && ! empty( $terms ) ) {
+                    foreach ( $terms as $t ) {
+                        if ( $t->slug !== 'uncategorized' && $t->slug !== 'necategorizat' ) {
+                            $chosen_term = $t;
+                            break;
+                        }
+                    }
+                    if ( ! $chosen_term ) {
+                        $chosen_term = $terms[0];
+                    }
+                }
+                if ( $chosen_term ) {
+                    $cat_slug = $chosen_term->slug;
+                    if ( $cat_slug !== 'uncategorized' && $cat_slug !== 'necategorizat' ) {
+                        if ( isset( $cat_index[ $cat_slug ] ) ) {
+                            $defaults['categories'][ $cat_index[ $cat_slug ] ]['name'] = $chosen_term->name;
+                        } else {
+                            $cat_index[ $cat_slug ] = count( $defaults['categories'] );
+                            $defaults['categories'][] = array(
+                                'id'   => $cat_slug,
+                                'name' => $chosen_term->name,
+                            );
+                        }
+                    }
+                } else {
+                    $cat_slug = $def_p['cat'] ?? 'canapele';
+                }
 
-                $img_url = wp_get_attachment_image_url( $wc_p->get_image_id(), 'large' );
+                $raw_state = $wc_p->get_attribute( 'stare' );
+                $state = maxmobila_normalize_state_slug( $raw_state, $def_p['state'] ?? 'nou' );
+
+                $material = $wc_p->get_attribute( 'material' );
+                if ( ! $material ) {
+                    $material = $def_p['material'] ?? '';
+                }
+
+                $color = $wc_p->get_attribute( 'culoare' );
+                if ( ! $color ) {
+                    $color = $def_p['color'] ?? '';
+                }
+
+                $dims = $wc_p->get_attribute( 'dimensiuni' );
+                if ( ! $dims ) {
+                    $dims = get_post_meta( $p_post->ID, '_maxmobila_dims', true );
+                }
+                if ( ! $dims && $def_p && ! empty( $def_p['dims'] ) ) {
+                    $dims = $def_p['dims'];
+                }
+
+                $img_id = $wc_p->get_image_id();
+                $img_url = '';
+                if ( $img_id ) {
+                    $img_url = wp_get_attachment_image_url( $img_id, 'large' ) ?: wp_get_attachment_url( $img_id );
+                }
+
+                $img_key = get_post_meta( $p_post->ID, '_maxmobila_img', true );
+                if ( ! $img_key && $def_p && ! empty( $def_p['img'] ) ) {
+                    $img_key = $def_p['img'];
+                } elseif ( ! $img_key && preg_match( '/^m(\d+)$/', $sku_key, $mm ) ) {
+                    $img_key = 'p' . $mm[1];
+                }
+                if ( ! $img_key ) {
+                    $img_key = 'p00';
+                }
+
+                $gallery_urls = array();
+                $gallery_ids = $wc_p->get_gallery_image_ids();
+                if ( ! empty( $gallery_ids ) ) {
+                    foreach ( $gallery_ids as $gid ) {
+                        $gurl = wp_get_attachment_image_url( $gid, 'large' ) ?: wp_get_attachment_url( $gid );
+                        if ( $gurl ) {
+                            $gallery_urls[] = $gurl;
+                        }
+                    }
+                }
 
                 $regular = floatval( $wc_p->get_regular_price() );
                 $sale = floatval( $wc_p->get_price() );
-                if ( ! $sale ) $sale = $regular;
-                if ( ! $regular ) $regular = $sale * 1.4;
+                if ( ! $sale ) {
+                    $sale = $regular;
+                }
+                if ( ! $regular || $regular < $sale ) {
+                    $regular = $sale;
+                }
+
+                $buy_eur = get_post_meta( $p_post->ID, '_maxmobila_buy_eur', true );
+                if ( $buy_eur === '' || $buy_eur === false ) {
+                    $buy_eur = $def_p['buyEUR'] ?? round( $sale / 15 );
+                }
+
+                $stock_qty = $wc_p->is_in_stock() ? ( $wc_p->get_stock_quantity() !== null ? intval( $wc_p->get_stock_quantity() ) : 1 ) : 0;
+                $raw_desc = $wc_p->get_description() ?: $wc_p->get_short_description();
+                $clean_desc = $raw_desc ? trim( wp_strip_all_tags( $raw_desc ) ) : '';
+
+                $sort_order = get_post_meta( $p_post->ID, '_maxmobila_sort_order', true );
+                if ( $sort_order === '' || $sort_order === false ) {
+                    $sort_order = 1000 + $p_post->ID;
+                }
 
                 $mapped_products[] = array(
-                    'id'         => (string) $wc_p->get_id(),
+                    'id'         => $sku !== '' ? $sku : (string) $wc_p->get_id(),
+                    'wc_id'      => $wc_p->get_id(),
                     'cat'        => $cat_slug,
                     'name'       => $wc_p->get_name(),
-                    'material'   => $wc_p->get_attribute( 'material' ) ?: 'textil',
-                    'color'      => $wc_p->get_attribute( 'culoare' ) ?: 'standard',
-                    'dims'       => $wc_p->get_attribute( 'dimensiuni' ) ?: null,
-                    'state'      => strtolower( trim( $state ) ),
+                    'material'   => $material ?: null,
+                    'color'      => $color ?: null,
+                    'dims'       => $dims ?: null,
+                    'state'      => $state,
                     'newRON'     => round( $regular ),
                     'priceRON'   => round( $sale ),
-                    'buyEUR'     => round( $sale / 15 ),
-                    'stock'      => $wc_p->get_stock_quantity() ?: 1,
-                    'img'        => 'p00', // fallback key
+                    'buyEUR'     => floatval( $buy_eur ),
+                    'stock'      => $stock_qty,
+                    'img'        => $img_key,
                     'custom_img' => $img_url ?: '',
-                    'defect'     => get_post_meta( $p_post->ID, '_maxmobila_defect', true ) ?: null,
+                    'gallery'    => $gallery_urls,
+                    'desc'       => $clean_desc,
+                    'defect'     => get_post_meta( $p_post->ID, '_maxmobila_defect', true ) ?: ( $def_p['defect'] ?? null ),
+                    '_order'     => intval( $sort_order ),
                 );
             }
 
-            if ( count( $mapped_products ) >= 5 ) {
+            if ( ! empty( $mapped_products ) ) {
+                usort( $mapped_products, function( $a, $b ) {
+                    return $a['_order'] <=> $b['_order'];
+                } );
+                foreach ( $mapped_products as &$mp ) {
+                    unset( $mp['_order'] );
+                }
+                unset( $mp );
                 $defaults['products'] = $mapped_products;
             }
         }
@@ -418,14 +709,16 @@ function maxmobila_hero_shortcode( $atts = array() ) {
         </div>
         <div class="collage">
           <?php foreach ( $hero_items as $i => $hp ) : 
-            $hdisc = round( ( 1 - $hp['priceRON'] / $hp['newRON'] ) * 100 );
+            $h_new = floatval( $hp['newRON'] ?? 0 );
+            $h_pri = floatval( $hp['priceRON'] ?? 0 );
+            $hdisc = ( $h_new > 0 && $h_pri > 0 && $h_new > $h_pri ) ? round( ( 1 - $h_pri / $h_new ) * 100 ) : 0;
           ?>
             <a class="tile <?php echo $i === 0 ? 'big' : ''; ?>" href="#/produs/<?php echo esc_attr( $hp['id'] ); ?>">
               <?php echo maxmobila_get_img_html( $hp ); ?>
-              <span class="off">−<?php echo $hdisc; ?>%</span>
+              <?php if ( $hdisc > 0 ) : ?><span class="off">−<?php echo $hdisc; ?>%</span><?php endif; ?>
               <span class="tag">
-                <small><?php echo maxmobila_format_lei( $hp['newRON'] ); ?></small>
-                <b class="num"><?php echo maxmobila_format_lei( $hp['priceRON'] ); ?></b>
+                <?php if ( $h_new > $h_pri ) : ?><small><?php echo maxmobila_format_lei( $h_new ); ?></small><?php endif; ?>
+                <b class="num"><?php echo maxmobila_format_lei( $h_pri ); ?></b>
               </span>
             </a>
           <?php endforeach; ?>
@@ -471,13 +764,13 @@ function maxmobila_categorii_shortcode( $atts = array() ) {
           <?php foreach ( $categories as $c ) : 
             $cat_prods = $by_cat[ $c['id'] ] ?? array();
             $count = count( $cat_prods );
-            $first_prod = ! empty( $cat_prods ) ? $cat_prods[0] : null;
+            $first_prod = ! empty( $cat_prods ) ? $cat_prods[0] : ( $products[0] ?? null );
             $min_price = $count > 0 ? min( array_column( $cat_prods, 'priceRON' ) ) : 0;
           ?>
             <a class="cat" href="#/produse?cat=<?php echo esc_attr( $c['id'] ); ?>">
               <span class="im"><?php echo $first_prod ? maxmobila_get_img_html( $first_prod ) : ''; ?></span>
               <b><?php echo esc_html( $c['name'] ); ?></b>
-              <span><?php echo $count; ?> produse · de la <?php echo maxmobila_format_lei( $min_price ); ?></span>
+              <span><?php echo $count > 0 ? $count . ' produse · de la ' . maxmobila_format_lei( $min_price ) : 'În curând'; ?></span>
             </a>
           <?php endforeach; ?>
         </div>
@@ -1216,6 +1509,17 @@ add_filter( 'theme_page_templates', function( $templates ) {
 
 // Încarcă șablonul dedicat dacă este selectat
 add_filter( 'template_include', function( $template ) {
+    // Dacă este o cerere pentru un produs individual (/produs/ID sau ?produs=ID)
+    $prod_var = get_query_var( 'maxmobila_produs' );
+    $req_path = strtok( $_SERVER['REQUEST_URI'] ?? '', '?' );
+    $has_produs_path = preg_match( '#/produs/([a-zA-Z0-9_-]+)/?$#', $req_path );
+    if ( ! empty( $prod_var ) || ! empty( $_GET['produs'] ) || $has_produs_path ) {
+        $custom_tpl = MAXMOBILA_PATH . 'templates/full-shop.php';
+        if ( file_exists( $custom_tpl ) ) {
+            return $custom_tpl;
+        }
+    }
+
     if ( is_page_template( 'templates/full-shop.php' ) ) {
         $custom_tpl = MAXMOBILA_PATH . 'templates/full-shop.php';
         if ( file_exists( $custom_tpl ) ) {
@@ -1300,6 +1604,13 @@ function maxmobila_handle_submit_order() {
                     $qty = intval( $line['q'] ?? 1 );
 
                     $item = new WC_Order_Item_Product();
+                    $wc_prod_id = intval( $line['p']['wc_id'] ?? 0 );
+                    if ( ! $wc_prod_id && ! empty( $line['p']['id'] ) && function_exists( 'wc_get_product_id_by_sku' ) ) {
+                        $wc_prod_id = wc_get_product_id_by_sku( $line['p']['id'] );
+                    }
+                    if ( $wc_prod_id ) {
+                        $item->set_product_id( $wc_prod_id );
+                    }
                     $item->set_name( $item_name );
                     $item->set_quantity( $qty );
                     $item->set_subtotal( $price * $qty );
@@ -1376,6 +1687,34 @@ function maxmobila_handle_contact_submit() {
 }
 
 // ----------------------------------------------------
+// AJAX SHOWROOM RESERVATIONS (REZERVĂRI RAPIDE ÎN MAGAZIN)
+// ----------------------------------------------------
+add_action( 'wp_ajax_maxmobila_submit_reservation', 'maxmobila_handle_submit_reservation' );
+add_action( 'wp_ajax_nopriv_maxmobila_submit_reservation', 'maxmobila_handle_submit_reservation' );
+function maxmobila_handle_submit_reservation() {
+    $res_raw = isset( $_POST['res_json'] ) ? wp_unslash( $_POST['res_json'] ) : '';
+    if ( empty( $res_raw ) ) {
+        wp_send_json_error( array( 'message' => 'Lipsesc datele rezervării.' ) );
+    }
+
+    $res = json_decode( $res_raw, true );
+    if ( ! $res || empty( $res['nume'] ) || empty( $res['tel'] ) ) {
+        wp_send_json_error( array( 'message' => 'Completează numele și numărul de telefon.' ) );
+    }
+
+    $all_reservations = get_option( 'maxmobila_showroom_reservations', array() );
+    $res['created_at'] = current_time( 'mysql' );
+    $res_id = sanitize_text_field( $res['id'] ?? ( 'REZ-' . time() ) );
+    $all_reservations[ $res_id ] = $res;
+    update_option( 'maxmobila_showroom_reservations', $all_reservations );
+
+    wp_send_json_success( array(
+        'message' => 'Rezervarea a fost înregistrată cu succes!',
+        'id'      => $res_id,
+    ) );
+}
+
+// ----------------------------------------------------
 // ADMIN MENU & DASHBOARD
 // ----------------------------------------------------
 add_action( 'admin_menu', 'maxmobila_register_admin_menu' );
@@ -1397,6 +1736,15 @@ function maxmobila_register_admin_menu() {
         'manage_options',
         'maxmobila-orders',
         'maxmobila_render_admin_orders'
+    );
+
+    add_submenu_page(
+        'maxmobila-dashboard',
+        'Rezervări Showroom',
+        'Rezervări Showroom',
+        'manage_options',
+        'maxmobila-reservations',
+        'maxmobila_render_admin_reservations'
     );
 
     add_submenu_page(
@@ -1538,6 +1886,56 @@ function maxmobila_render_admin_orders() {
     <?php
 }
 
+// Submenu: Rezervări Showroom (Clienți care vin la depozit)
+function maxmobila_render_admin_reservations() {
+    $reservations = get_option( 'maxmobila_showroom_reservations', array() );
+    ?>
+    <div class="wrap">
+        <h1>Rezervări Piese în Showroom & Depozit</h1>
+        <p>Clienți care au rezervat o piesă pe site și vin să o vadă / achite la depozitul din Satu Mare.</p>
+        <?php if ( empty( $reservations ) ) : ?>
+            <p>Nu există încă rezervări de showroom înregistrate.</p>
+        <?php else : ?>
+            <table class="widefat striped">
+                <thead>
+                    <tr>
+                        <th>Cod Rezervare</th>
+                        <th>Data</th>
+                        <th>Client</th>
+                        <th>Telefon</th>
+                        <th>Produs Rezervat</th>
+                        <th>Preț</th>
+                        <th>Când vine la depozit</th>
+                        <th>Observații</th>
+                        <th>Acțiuni Rapide</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ( array_reverse( $reservations ) as $r ) : 
+                        $tel_clean = preg_replace( '/\D/', '', $r['tel'] ?? '' );
+                        $wa_msg = urlencode( 'Bună ziua, ' . ( $r['nume'] ?? 'client' ) . '! Vă contactăm de la MaxMobila Satu Mare privind rezervarea piesei ' . ( $r['prodName'] ?? '' ) . ' (Cod ' . ( $r['id'] ?? '' ) . '). Vă așteptăm cu drag la showroom!' );
+                    ?>
+                        <tr>
+                            <td><strong><?php echo esc_html( $r['id'] ?? '' ); ?></strong></td>
+                            <td><?php echo esc_html( $r['created_at'] ?? '' ); ?></td>
+                            <td><strong><?php echo esc_html( $r['nume'] ?? '' ); ?></strong></td>
+                            <td><a href="tel:<?php echo esc_attr( $r['tel'] ?? '' ); ?>" class="button button-small">📞 <?php echo esc_html( $r['tel'] ?? '' ); ?></a></td>
+                            <td><strong><?php echo esc_html( $r['prodName'] ?? '' ); ?></strong></td>
+                            <td><strong style="color:#d7262e;"><?php echo esc_html( number_format( (float)($r['priceRON'] ?? 0), 0, ',', '.' ) ); ?> lei</strong></td>
+                            <td><span style="background:#e3f1e8;color:#2f7d4f;padding:3px 8px;border-radius:4px;font-weight:bold;"><?php echo esc_html( $r['cand'] ?? 'Curând' ); ?></span></td>
+                            <td><?php echo esc_html( $r['obs'] ?? '—' ); ?></td>
+                            <td>
+                                <a href="https://wa.me/<?php echo esc_attr( $tel_clean ); ?>?text=<?php echo $wa_msg; ?>" target="_blank" class="button button-small" style="background:#25D366;color:#fff;border-color:#20ba5c;">💬 WhatsApp</a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php endif; ?>
+    </div>
+    <?php
+}
+
 // Submenu: Mesaje Showroom
 function maxmobila_render_admin_inquiries() {
     $inquiries = get_option( 'maxmobila_contact_inquiries', array() );
@@ -1576,7 +1974,7 @@ function maxmobila_render_admin_inquiries() {
 
 // Submenu: Marje & Profit Intern
 function maxmobila_render_admin_margins() {
-    $defaults = maxmobila_get_default_data();
+    $defaults = maxmobila_get_active_data();
     $calc     = $defaults['calc'];
     $products = $defaults['products'];
 
@@ -1689,6 +2087,76 @@ function maxmobila_render_admin_sync() {
     <?php
 }
 
+function maxmobila_ensure_product_attachment( $img_key, $prod_name = '' ) {
+    if ( empty( $img_key ) ) {
+        return 0;
+    }
+
+    $map = get_option( 'maxmobila_asset_attachments', array() );
+    if ( ! is_array( $map ) ) {
+        $map = array();
+    }
+
+    if ( ! empty( $map[ $img_key ] ) ) {
+        $aid = intval( $map[ $img_key ] );
+        $post = get_post( $aid );
+        $file = get_attached_file( $aid );
+        if ( $post && $post->post_type === 'attachment' && $file && file_exists( $file ) ) {
+            return $aid;
+        }
+    }
+
+    $src = MAXMOBILA_PATH . 'assets/images/' . $img_key . '.webp';
+    if ( ! file_exists( $src ) ) {
+        return 0;
+    }
+
+    $upload = wp_upload_dir();
+    if ( ! empty( $upload['error'] ) ) {
+        return 0;
+    }
+
+    $dest_dir = trailingslashit( $upload['basedir'] ) . 'maxmobila';
+    $dest_url = trailingslashit( $upload['baseurl'] ) . 'maxmobila';
+    if ( ! file_exists( $dest_dir ) ) {
+        wp_mkdir_p( $dest_dir );
+    }
+
+    $filename = 'maxmobila-' . sanitize_file_name( $img_key ) . '.webp';
+    $dest     = trailingslashit( $dest_dir ) . $filename;
+    if ( ! file_exists( $dest ) ) {
+        if ( ! @copy( $src, $dest ) ) {
+            return 0;
+        }
+    }
+
+    $attachment = array(
+        'guid'           => trailingslashit( $dest_url ) . $filename,
+        'post_mime_type' => 'image/webp',
+        'post_title'     => $prod_name ? sanitize_text_field( $prod_name ) : sanitize_text_field( $img_key ),
+        'post_content'   => '',
+        'post_status'    => 'inherit',
+    );
+
+    $attach_id = wp_insert_attachment( $attachment, $dest );
+    if ( ! $attach_id || is_wp_error( $attach_id ) ) {
+        return 0;
+    }
+
+    if ( ! function_exists( 'wp_generate_attachment_metadata' ) ) {
+        require_once ABSPATH . 'wp-admin/includes/image.php';
+    }
+    $attach_data = wp_generate_attachment_metadata( $attach_id, $dest );
+    if ( is_array( $attach_data ) ) {
+        wp_update_attachment_metadata( $attach_id, $attach_data );
+    }
+
+    $map[ $img_key ] = $attach_id;
+    update_option( 'maxmobila_asset_attachments', $map );
+
+    return $attach_id;
+}
+
 function maxmobila_sync_products_to_woocommerce() {
     if ( ! class_exists( 'WooCommerce' ) ) return 0;
 
@@ -1700,21 +2168,33 @@ function maxmobila_sync_products_to_woocommerce() {
     foreach ( $categories as $c ) {
         $term = get_term_by( 'slug', $c['id'], 'product_cat' );
         if ( ! $term ) {
-            $term = wp_insert_term( $c['name'], 'product_cat', array( 'slug' => $c['id'] ) );
-        }
-        if ( ! is_wp_error( $term ) ) {
-            $cat_ids[ $c['id'] ] = is_array( $term ) ? $term['term_id'] : $term;
+            $inserted = wp_insert_term( $c['name'], 'product_cat', array( 'slug' => $c['id'] ) );
+            if ( ! is_wp_error( $inserted ) && isset( $inserted['term_id'] ) ) {
+                $cat_ids[ $c['id'] ] = intval( $inserted['term_id'] );
+            }
+        } elseif ( ! is_wp_error( $term ) ) {
+            $cat_ids[ $c['id'] ] = intval( $term->term_id );
         }
     }
 
+    $state_labels = array(
+        'nou'       => 'Nou',
+        'resigilat' => 'Resigilat',
+        'expus'     => 'Expus',
+        'defecte'   => 'Mici defecte',
+    );
+
     $count = 0;
-    foreach ( $products as $p ) {
+    foreach ( $products as $idx => $p ) {
         $existing = wc_get_product_id_by_sku( $p['id'] );
         if ( $existing ) {
             $product = wc_get_product( $existing );
         } else {
             $product = new WC_Product_Simple();
             $product->set_sku( $p['id'] );
+        }
+        if ( ! $product ) {
+            continue;
         }
 
         $product->set_name( $p['name'] );
@@ -1723,17 +2203,25 @@ function maxmobila_sync_products_to_woocommerce() {
         $product->set_sale_price( $p['priceRON'] );
         $product->set_manage_stock( true );
         $product->set_stock_quantity( $p['stock'] );
-        $product->set_stock_status( 'instock' );
+        $product->set_stock_status( intval( $p['stock'] ) > 0 ? 'instock' : 'outofstock' );
 
         if ( isset( $cat_ids[ $p['cat'] ] ) ) {
             $product->set_category_ids( array( $cat_ids[ $p['cat'] ] ) );
+        }
+
+        if ( ! $product->get_image_id() && ! empty( $p['img'] ) ) {
+            $attach_id = maxmobila_ensure_product_attachment( $p['img'], $p['name'] );
+            if ( $attach_id ) {
+                $product->set_image_id( $attach_id );
+            }
         }
 
         $attributes = array();
         
         $attr_stare = new WC_Product_Attribute();
         $attr_stare->set_name( 'Stare' );
-        $attr_stare->set_options( array( ucfirst( $p['state'] ) ) );
+        $st_label = $state_labels[ $p['state'] ] ?? ucfirst( $p['state'] );
+        $attr_stare->set_options( array( $st_label ) );
         $attr_stare->set_visible( true );
         $attributes[] = $attr_stare;
 
@@ -1753,15 +2241,34 @@ function maxmobila_sync_products_to_woocommerce() {
             $attributes[] = $attr_col;
         }
 
+        if ( ! empty( $p['dims'] ) ) {
+            $attr_dims = new WC_Product_Attribute();
+            $attr_dims->set_name( 'Dimensiuni' );
+            $attr_dims->set_options( array( $p['dims'] ) );
+            $attr_dims->set_visible( true );
+            $attributes[] = $attr_dims;
+        }
+
         $product->set_attributes( $attributes );
         $product->save();
 
+        $pid = $product->get_id();
+        if ( ! empty( $p['img'] ) ) {
+            update_post_meta( $pid, '_maxmobila_img', sanitize_text_field( $p['img'] ) );
+        }
+        if ( isset( $p['buyEUR'] ) ) {
+            update_post_meta( $pid, '_maxmobila_buy_eur', floatval( $p['buyEUR'] ) );
+        }
+        update_post_meta( $pid, '_maxmobila_sort_order', intval( $idx ) );
+
         if ( ! empty( $p['defect'] ) ) {
-            update_post_meta( $product->get_id(), '_maxmobila_defect', sanitize_text_field( $p['defect'] ) );
+            update_post_meta( $pid, '_maxmobila_defect', sanitize_text_field( $p['defect'] ) );
         }
 
         $count++;
     }
+
+    update_option( 'maxmobila_wc_sync_fixed_v2', '1' );
 
     return $count;
 }

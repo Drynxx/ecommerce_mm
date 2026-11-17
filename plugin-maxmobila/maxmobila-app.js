@@ -869,27 +869,37 @@ const S = DATA.store, C = DATA.calc;
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const lei = n => Math.round(n).toLocaleString('ro-RO') + ' lei';
-const byId = (a, id) => a.find(x => String(x.id) === String(id));
+const byId = (a, id) => a.find(x => String(x.id) === String(id) || (x.wc_id && String(x.wc_id) === String(id)));
 const I = {
   cart:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>',
   plus:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 5v14M5 12h14"/></svg>',
   phone:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>',
   pin:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>',
-  arrow:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg>'
+  check:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6 9 17l-5-5"/></svg>',
+  shield:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+  truck:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 3h15v13H1zM16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>',
+  arrow:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg>',
+  whatsapp:'<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.1-1.7-.8-2-.9-.3-.1-.5-.1-.7.2-.2.3-.8.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.3-.5-2.4-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6.1-.1.3-.4.4-.5.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5s-.7-1.7-.9-2.3c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.2-1.2 2.9s1.2 3.4 1.4 3.6c.2.2 2.4 3.7 5.8 5.1.8.3 1.4.6 1.9.7.8.3 1.5.2 2.1.1.7-.1 1.7-.7 1.9-1.4.3-.7.3-1.3.2-1.4-.1-.2-.3-.3-.6-.4zM12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2z"/></svg>',
+  share:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>',
+  calendar:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>'
 };
 
 /* ---------- state derivat ---------- */
 const CAT = Object.fromEntries(DATA.categories.map(c => [c.id, c]));
 const ST = Object.fromEntries(DATA.states.map(s => [s.id, s]));
 const P = DATA.products.map(p => {
-  const cost = (p.buyEUR + C.transportEUR) / (1 - C.lossPct) * C.fx, mult = p.priceRON / cost;
-  return { ...p, costRON: cost, profitRON: p.priceRON - cost, mult,
+  const price = Number(p.priceRON) || 0;
+  const was = Math.max(Number(p.newRON) || price, price);
+  const cost = ((Number(p.buyEUR) || 0) + C.transportEUR) / (1 - C.lossPct) * C.fx;
+  const mult = cost > 0 ? price / cost : 0;
+  const disc = was > price && was > 0 ? Math.max(0, Math.round((1 - price / was) * 100)) : 0;
+  return { ...p, newRON: was, priceRON: price, costRON: cost, profitRON: price - cost, mult,
     verdict: mult >= C.good ? 'BUN' : mult >= C.marginal ? 'Marginal' : 'NU',
-    disc: Math.round((1 - p.priceRON / p.newRON) * 100) };
+    disc };
 });
 const inCat = id => P.filter(p => p.cat === id);
-const maxDisc = Math.max(...P.map(p => p.disc));
-const avgDisc = Math.round(P.reduce((a, p) => a + p.disc, 0) / P.length);
+const maxDisc = P.length ? Math.max(...P.map(p => p.disc)) : 0;
+const avgDisc = P.length ? Math.round(P.reduce((a, p) => a + p.disc, 0) / P.length) : 0;
 if (!window.MAXMOBILA_ASSETS_URL) {
   const currentScript = document.currentScript;
   if (currentScript && currentScript.src) {
@@ -911,7 +921,10 @@ const imgUrl = (p) => {
   return '';
 };
 const img = (p, cls) => `<img src="${imgUrl(p)}" alt="${esc(p ? p.name : '')}"${cls ? ` class="${cls}"` : ''} loading="lazy">`;
-const stBadge = p => `<span class="st ${p.state}">${ST[p.state].name}</span>`;
+const cap = v => v ? String(v).charAt(0).toUpperCase() + String(v).slice(1) : '';
+const stOf = p => ST[p && p.state] || { id: (p && p.state) || 'nou', name: cap(p && p.state) || 'Nou', short: '', desc: '' };
+const catOf = p => CAT[p && p.cat] || { id: (p && p.cat) || '', name: cap(p && p.cat) || 'Mobilier' };
+const stBadge = p => `<span class="st ${esc(p.state)}">${esc(stOf(p).name)}</span>`;
 const meta = p => [p.material, p.color].filter(Boolean).map(esc).join(' · ');
 
 /* ---------- coș ---------- */
@@ -931,8 +944,8 @@ function totals(){
   const svcTot = svc.reduce((a, s) => a + s.tot, 0);
   return { L, sub, was, big, ships, ship, svc, svcTot, total: sub + svcTot + (L.length ? ship.cost : 0) };
 }
-function add(id, q){ const p = byId(P, id); q = q || 1; CART.items[id] = Math.min(p.stock, (CART.items[id] || 0) + q); save(); renderTop(); toast(`Adăugat în coș: ${esc(p.name)}`, '#/cos', 'Vezi coșul'); const cm = document.getElementById('maxmobila-cos-embed'); if (cm) cm.innerHTML = V.cos(); }
-function setQ(id, d){ const p = byId(P, id); const n = (CART.items[id] || 0) + d; if (n <= 0) delete CART.items[id]; else CART.items[id] = Math.min(p.stock, n); save(); render(true); const cm = document.getElementById('maxmobila-cos-embed'); if (cm) cm.innerHTML = V.cos(); }
+function add(id, q){ const p = byId(P, id); if (!p) return; if ((p.stock || 0) <= 0) { toast('Acest produs nu mai este disponibil în stoc.'); return; } q = q || 1; CART.items[p.id] = Math.min(p.stock, (CART.items[p.id] || 0) + q); save(); renderTop(); toast(`Adăugat în coș: ${esc(p.name)}`, '#/cos', 'Vezi coșul'); const cm = document.getElementById('maxmobila-cos-embed'); if (cm) cm.innerHTML = V.cos(); }
+function setQ(id, d){ const p = byId(P, id); if (!p) return; const n = (CART.items[id] || 0) + d; if (n <= 0 || p.stock <= 0) delete CART.items[id]; else CART.items[id] = Math.min(p.stock, n); save(); render(true); const cm = document.getElementById('maxmobila-cos-embed'); if (cm) cm.innerHTML = V.cos(); }
 function del(id){ delete CART.items[id]; save(); render(true); const cm = document.getElementById('maxmobila-cos-embed'); if (cm) cm.innerHTML = V.cos(); }
 function toggleSvc(id){ CART.svc[id] = !CART.svc[id]; save(); render(true); const cm = document.getElementById('maxmobila-cos-embed'); if (cm) cm.innerHTML = V.cos(); }
 function setShip(id){ CART.ship = id; save(); render(true); const cm = document.getElementById('maxmobila-cos-embed'); if (cm) cm.innerHTML = V.cos(); const chm = document.getElementById('maxmobila-checkout-embed'); if (chm) chm.innerHTML = V.checkout(); }
@@ -973,10 +986,10 @@ const card = p => {
   const isFav = !!FAV_IDS[p.id];
   return `<article class="pc">
   <a class="ph" href="#/produs/${p.id}">${img(p)}</a>
-  <span class="tl">${stBadge(p)}</span><span class="tr off">−${p.disc}%</span>
+  <span class="tl">${stBadge(p)}</span>${p.disc > 0 ? `<span class="tr off">−${p.disc}%</span>` : ''}
   <div class="bd"><span class="pc-brand">COLECȚIA GERMANIA</span><a href="#/produs/${p.id}"><h3>${esc(p.name)}</h3></a>
     <div class="meta">${meta(p)}${p.dims ? `<br>${esc(p.dims)}` : ''}</div>
-    <div class="pr"><div><div class="was">Preț nou: <s>${lei(p.newRON)}</s></div><div class="price num">${lei(p.priceRON)}</div></div>
+    <div class="pr"><div>${p.newRON > p.priceRON ? `<div class="was">Preț nou: <s>${lei(p.newRON)}</s></div>` : ''}<div class="price num">${lei(p.priceRON)}</div></div>
       <div class="pc-acts"><button type="button" class="pc-fav ${isFav ? 'on' : ''}" onclick="toggleFav('${p.id}',this)" aria-label="Favorite" title="Adaugă la favorite">${isFav ? '♥' : '♡'}</button><button type="button" class="addb" onclick="add('${p.id}')" aria-label="Adaugă în coș" title="Adaugă în coș">${I.cart}</button></div></div></div></article>`;
 };
 const head = (title, sub, crumbs) => `<section class="pagehead"><div class="wrap"><div class="crumb"><a href="#/acasa">Acasă</a>${(crumbs || []).map(([h, l]) => ` / ${h ? `<a href="${h}">${l}</a>` : l}`).join('')}</div><h1>${title}</h1>${sub ? `<p>${sub}</p>` : ''}</div></section>`;
@@ -984,7 +997,8 @@ const head = (title, sub, crumbs) => `<section class="pagehead"><div class="wrap
 /* ========================= VIEWS ========================= */
 const V = {};
 V.acasa = () => {
-  const hero = [byId(P, 'm00'), byId(P, 'm43'), byId(P, 'm04')];
+  const preferredHero = [byId(P, 'm00'), byId(P, 'm43'), byId(P, 'm04')].filter(Boolean);
+  const hero = [...preferredHero, ...P.filter(x => !preferredHero.includes(x))].slice(0, 3);
   const top = [...P].sort((a, b) => b.disc - a.disc).slice(0, 8);
   return `
 <section class="hero"><div class="wrap g">
@@ -992,14 +1006,14 @@ V.acasa = () => {
     <h1>Mobilă nemțească.<br><em>Preț de outlet.</em></h1>
     <p class="lead">Canapele, paturi, mese și dulapuri din surplusul magazinelor din Germania. Fiecare piesă are starea scrisă clar: nou, resigilat, expus sau cu mici defecte.</p>
     <div class="ctas"><a class="btn red" href="#/produse?sort=disc">Vezi reducerile ${I.arrow}</a><a class="btn outl" href="#/produse">Toate produsele</a></div>
-    <div class="hstats"><div><b class="num">${P.length}</b><span>produse în stoc</span></div><div><b class="num">−${avgDisc}%</b><span>reducere medie</span></div><div><b>2 ani</b><span>garanție</span></div></div>
+    <div class="hstats"><div><b class="num">${P.length}</b><span>produse în stoc</span></div><div><b class="num">−${avgDisc}%</b><span>reducere medie</span></div><div><b>${S.warrantyYears || 2} ani</b><span>garanție</span></div></div>
   </div>
-  <div class="collage">${hero.map((p, i) => `<a class="tile ${i ? '' : 'big'}" href="#/produs/${p.id}">${img(p)}<span class="off">−${p.disc}%</span><span class="tag"><small>${lei(p.newRON)}</small><b class="num">${lei(p.priceRON)}</b></span></a>`).join('')}</div>
+  <div class="collage">${hero.map((p, i) => `<a class="tile ${i ? '' : 'big'}" href="#/produs/${p.id}">${img(p)}${p.disc > 0 ? `<span class="off">−${p.disc}%</span>` : ''}<span class="tag">${p.newRON > p.priceRON ? `<small>${lei(p.newRON)}</small>` : ''}<b class="num">${lei(p.priceRON)}</b></span></a>`).join('')}</div>
 </div></section>
 
 <section class="sec white"><div class="wrap">
   <div class="sh"><div><h2>Categorii</h2><p>Alege camera, noi avem piesa.</p></div><a class="more" href="#/produse">Toate cele ${P.length} de produse</a></div>
-  <div class="catgrid">${DATA.categories.map(c => { const ps = inCat(c.id); return `<a class="cat" href="#/produse?cat=${c.id}"><span class="im">${img(ps[0])}</span><b>${c.name}</b><span>${ps.length} produse · de la ${lei(Math.min(...ps.map(p => p.priceRON)))}</span></a>`; }).join('')}</div>
+  <div class="catgrid">${DATA.categories.map(c => { const ps = inCat(c.id); const thumb = ps[0] || P[0]; const subTxt = ps.length ? `${ps.length} produse · de la ${lei(Math.min(...ps.map(p => p.priceRON)))}` : 'În curând'; return `<a class="cat" href="#/produse?cat=${c.id}"><span class="im">${thumb ? img(thumb) : ''}</span><b>${esc(c.name)}</b><span>${subTxt}</span></a>`; }).join('')}</div>
 </div></section>
 
 <section class="sec"><div class="wrap">
@@ -1024,15 +1038,15 @@ V.acasa = () => {
 
 V.produse = (q) => {
   const cat = q.get('cat') || '', st = q.get('st') || '', s = (q.get('s') || '').trim().toLowerCase(), max = +q.get('max') || 0, sort = q.get('sort') || 'rec';
-  const base = P.filter(p => !s || (p.name + ' ' + p.material + ' ' + p.color + ' ' + CAT[p.cat].name).toLowerCase().includes(s));
+  const base = P.filter(p => !s || ((p.name || '') + ' ' + (p.material || '') + ' ' + (p.color || '') + ' ' + catOf(p).name).toLowerCase().includes(s));
   const f1 = base.filter(p => !cat || p.cat === cat);
   let list = f1.filter(p => (!st || p.state === st) && (!max || p.priceRON <= max));
-  const sorts = { rec: (a, b) => a.cat.localeCompare(b.cat) || b.disc - a.disc, disc: (a, b) => b.disc - a.disc, pa: (a, b) => a.priceRON - b.priceRON, pd: (a, b) => b.priceRON - a.priceRON };
+  const sorts = { rec: (a, b) => (a.cat || '').localeCompare(b.cat || '') || b.disc - a.disc, disc: (a, b) => b.disc - a.disc, pa: (a, b) => a.priceRON - b.priceRON, pd: (a, b) => b.priceRON - a.priceRON };
   list.sort(sorts[sort] || sorts.rec);
   const o = (k, v, l, n) => `<button class="opt ${String(q.get(k) || '') === String(v) ? 'on' : ''}" onclick="qset('${k}','${v}')">${l}${n != null ? `<em>${n}</em>` : ''}</button>`;
-  const chips = [cat && ['cat', CAT[cat].name], st && ['st', ST[st].name], s && ['s', `„${esc(s)}”`], max && ['max', `sub ${lei(max)}`]].filter(Boolean);
-  const title = cat ? CAT[cat].name : s ? `Rezultate: „${esc(s)}”` : sort === 'disc' ? 'Reduceri' : 'Toate produsele';
-  return head(title, `${list.length} produse · reduceri de până la −${list.length ? Math.max(...list.map(p => p.disc)) : 0}%`, [['#/produse', 'Produse'], ...(cat ? [[null, CAT[cat].name]] : [])]) + `
+  const chips = [cat && ['cat', esc(catOf({cat}).name)], st && ['st', esc(stOf({state:st}).name)], s && ['s', `„${esc(s)}”`], max && ['max', `sub ${lei(max)}`]].filter(Boolean);
+  const title = cat ? esc(catOf({cat}).name) : s ? `Rezultate: „${esc(s)}”` : sort === 'disc' ? 'Reduceri' : 'Toate produsele';
+  return head(title, `${list.length} produse · reduceri de până la −${list.length ? Math.max(...list.map(p => p.disc)) : 0}%`, [['#/produse', 'Produse'], ...(cat ? [[null, esc(catOf({cat}).name)]] : [])]) + `
   <div class="wrap shop"><aside class="filters">
     <h4>Categorie</h4>${o('cat', '', 'Toate', base.length)}${DATA.categories.map(c => o('cat', c.id, c.name, base.filter(p => p.cat === c.id).length)).join('')}
     <h4>Stare</h4>${o('st', '', 'Oricare')}${DATA.states.map(x => o('st', x.id, x.name, f1.filter(p => p.state === x.id).length)).join('')}
@@ -1058,372 +1072,368 @@ function getColorHex(colStr) {
   return '#F4F3EF';
 }
 
+function getCleanProdUrl(prodId) {
+  const home = (window.MAXMOBILA_CONFIG && window.MAXMOBILA_CONFIG.homeUrl) ? window.MAXMOBILA_CONFIG.homeUrl.replace(/\/$/, '') : location.origin;
+  return `${home}/produs/${prodId}`;
+}
+
+function getWhatsAppLink(p) {
+  const waNum = (S.phoneRaw || S.phone || '').replace(/\D/g, '') || '40700000000';
+  const url = getCleanProdUrl(p.id);
+  const st = stOf(p);
+  const stTxt = st.short ? `${st.name} (${st.short})` : st.name;
+  const text = `Bună ziua! Vreau să rezerv piesa de pe site:
+🛋️ *${p.name || 'Produs'}*
+🏷️ Cod: MX-${String(p.id || '').toUpperCase()}
+💰 Preț: ${lei(p.priceRON || 0)}${p.disc > 0 ? ` (Reducere −${p.disc}%)` : ''}
+📍 Stare: ${stTxt}
+🔗 Link: ${url}
+
+Când pot veni să o văd în depozitul din ${S.city || 'Satu Mare'}?`;
+  return `https://wa.me/${waNum}?text=${encodeURIComponent(text)}`;
+}
+
+function getShareWhatsAppLink(p) {
+  const url = getCleanProdUrl(p.id);
+  const text = `Uită-te la piesa asta de mobilă din Germania:
+🛋️ *${p.name}*
+💰 Preț outlet: ${lei(p.priceRON)} (Redus de la ${lei(p.newRON)})
+📍 Showroom ${S.city}
+${url}`;
+  return `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+}
+
+function getShareFacebookLink(p) {
+  const url = getCleanProdUrl(p.id);
+  return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+}
+
+function copyProdLink(prodId) {
+  const url = getCleanProdUrl(prodId);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      toast('✓ Link-ul a fost copiat! Îl poți trimite pe WhatsApp sau Facebook.');
+    }).catch(() => {
+      prompt('Copiază link-ul:', url);
+    });
+  } else {
+    prompt('Copiază link-ul:', url);
+  }
+}
+
+function openReserveModal(prodId) {
+  const p = byId(P, prodId);
+  if (!p) return;
+  let modal = document.getElementById('mx-reserve-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'mx-reserve-modal';
+    modal.className = 'mx-modal-backdrop';
+    document.body.appendChild(modal);
+  }
+
+  modal.innerHTML = `
+    <div class="mx-modal-card">
+      <button type="button" class="mx-modal-close" onclick="closeReserveModal()" aria-label="Închide">✕</button>
+      <div id="mx-reserve-box">
+        <div class="mx-modal-head">
+          <div class="mx-modal-badge">📍 Depozit & Showroom ${S.city}</div>
+          <h2>Rezervă piesa gratuit (48 ore)</h2>
+          <p>Nu plătești nimic acum. Piesa este păstrată pentru tine la depozit, vii să o testezi pe viu și plătești doar când o ridici.</p>
+        </div>
+
+        <div class="mx-modal-prod">
+          <div class="mx-mp-img">${img(p)}</div>
+          <div class="mx-mp-info">
+            <b>${esc(p.name)}</b>
+            <div class="mx-mp-meta">${meta(p)} · ${stBadge(p)}</div>
+            <div class="mx-mp-price">${lei(p.priceRON)} <s>${lei(p.newRON)}</s></div>
+          </div>
+        </div>
+
+        <form class="mx-reserve-form" onsubmit="submitReservation(event, '${p.id}')">
+          <div class="frm-group">
+            <label for="res-nume">Numele și prenumele tău <i>*</i></label>
+            <input type="text" id="res-nume" required class="inp" placeholder="Ex: Vasile Pop" autofocus>
+          </div>
+
+          <div class="frm-group">
+            <label for="res-tel">Număr de telefon (te sunăm scurt să confirmăm) <i>*</i></label>
+            <input type="tel" id="res-tel" required class="inp" placeholder="07xx xxx xxx">
+          </div>
+
+          <div class="frm-group">
+            <label for="res-cand">Când estimezi că poți ajunge la depozit?</label>
+            <select id="res-cand" class="inp">
+              <option value="Azi">Azi (sunt în zonă)</option>
+              <option value="Mâine" selected>Mâine</option>
+              <option value="În weekend (Sâmbătă 9–14)">În weekend (Sâmbătă 9–14)</option>
+              <option value="Săptămâna viitoare">Săptămâna viitoare</option>
+              <option value="Vreau mai întâi să vorbim la telefon">Vreau mai întâi să vorbim la telefon</option>
+            </select>
+          </div>
+
+          <div class="frm-group">
+            <label for="res-obs">Ai vreo întrebare sau mențiune? (opțional)</label>
+            <input type="text" id="res-obs" class="inp" placeholder="Ex: aș dori să văd și lada de depozitare">
+          </div>
+
+          <button type="submit" class="btn-reserve-submit">
+            ✓ Confirmă Rezervarea Gratuită
+          </button>
+
+          <div class="mx-form-trust">
+            🛡️ Fără plată online · Plată numerar sau card la fața locului · Depozit în ${S.city}
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeReserveModal() {
+  const modal = document.getElementById('mx-reserve-modal');
+  if (modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function submitReservation(e, prodId) {
+  e.preventDefault();
+  const p = byId(P, prodId);
+  const nume = (document.getElementById('res-nume')?.value || '').trim();
+  const tel = (document.getElementById('res-tel')?.value || '').trim();
+  const cand = document.getElementById('res-cand')?.value || 'Mâine';
+  const obs = (document.getElementById('res-obs')?.value || '').trim();
+
+  if (!nume || !tel) {
+    alert('Te rugăm să completezi numele și numărul de telefon.');
+    return;
+  }
+
+  const resId = 'REZ-' + (31000 + Math.floor(Math.random() * 8999));
+  const resData = {
+    id: resId,
+    prodId: p ? p.id : prodId,
+    prodName: p ? p.name : 'Produs',
+    priceRON: p ? p.priceRON : 0,
+    nume: nume,
+    tel: tel,
+    cand: cand,
+    obs: obs
+  };
+
+  if (window.MAXMOBILA_AJAX_URL) {
+    const fd = new FormData();
+    fd.append('action', 'maxmobila_submit_reservation');
+    fd.append('nonce', window.MAXMOBILA_NONCE || '');
+    fd.append('res_json', JSON.stringify(resData));
+    fetch(window.MAXMOBILA_AJAX_URL, { method: 'POST', body: fd }).catch(err => console.log('Notice:', err));
+  }
+
+  const waNum = (S.phoneRaw || S.phone || '').replace(/\D/g, '') || '40700000000';
+  const waConfirmText = `Bună ziua! Am rezervat piesa ${p ? p.name : ''} pe site (Cod rezervare: ${resId}).
+Nume: ${nume}
+Telefon: ${tel}
+Estimare vizită: ${cand}
+Puteți să-mi confirmați adresa exactă a depozitului?`;
+  const waConfirmUrl = `https://wa.me/${waNum}?text=${encodeURIComponent(waConfirmText)}`;
+
+  const box = document.getElementById('mx-reserve-box');
+  if (box) {
+    box.innerHTML = `
+      <div class="mx-res-success">
+        <div class="mx-success-ic">✓</div>
+        <div class="mx-modal-badge" style="background:var(--okbg);color:var(--ok)">Rezervare Confirmată: ${resId}</div>
+        <h2>Mulțumim, ${esc(nume.split(' ')[0])}!</h2>
+        <p class="mx-lead-text">
+          Piesa <b>${esc(p ? p.name : 'Mobilier')}</b> este rezervată pentru tine timp de <b>48 de ore</b> în depozitul din <b>${S.city}</b>.
+        </p>
+
+        <div class="mx-next-steps">
+          <div class="step-row">
+            <span class="step-num">1</span>
+            <div><b>Te sunăm scurt:</b> În maxim 30–60 minute confirmăm telefonic vizita ta la numărul <b>${esc(tel)}</b>.</div>
+          </div>
+          <div class="step-row">
+            <span class="step-num">2</span>
+            <div><b>Vii la showroom:</b> Testezi confortul, verifici starea piesei și plătești doar dacă îți place.</div>
+          </div>
+          <div class="step-row">
+            <span class="step-num">3</span>
+            <div><b>Adresă & program:</b> ${S.address} · Luni–Vineri 9–18, Sâmbătă 9–14.</div>
+          </div>
+        </div>
+
+        <div class="mx-success-actions">
+          <a href="${waConfirmUrl}" target="_blank" rel="noopener" class="btn-whatsapp-main">
+            ${I.whatsapp} <span>Trimite confirmarea pe WhatsApp</span>
+          </a>
+          <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(S.address + ' ' + S.city)}" target="_blank" rel="noopener" class="btn outl block">
+            ${I.pin} <span>Deschide adresa depozitului în Google Maps</span>
+          </a>
+          <button type="button" class="btn ink block" onclick="closeReserveModal()">
+            Gata, am înțeles
+          </button>
+        </div>
+      </div>
+    `;
+  }
+}
+
 V.produs = (id) => {
-  const p = byId(P, id); if (!p) return V.nf();
-  // Track recently viewed
+  const p = byId(P, id); if (!p) return V.nf('Produsul nu mai este disponibil. Piesele din outlet sunt unice și se pot vinde rapid.');
   RECENT_IDS = [p.id, ...RECENT_IDS.filter(x => x !== p.id)].slice(0, 8);
   try { localStorage.setItem('mx_recent', JSON.stringify(RECENT_IDS)); } catch(e) {}
 
-  const s = ST[p.state];
-  const similar = inCat(p.cat).filter(x => x.id !== p.id).slice(0, 4);
-  const crossSell = [...P].filter(x => x.cat !== p.cat).sort((a, b) => b.disc - a.disc).slice(0, 4);
-  let recentProds = RECENT_IDS.filter(x => x !== p.id).map(x => byId(P, x)).filter(Boolean).slice(0, 4);
-  if (recentProds.length < 4) {
-    const filler = P.filter(x => x.id !== p.id && !recentProds.some(r => r.id === x.id)).slice(0, 4 - recentProds.length);
-    recentProds = [...recentProds, ...filler];
-  }
-
+  const s = stOf(p);
+  const catName = catOf(p).name;
   const isFav = !!FAV_IDS[p.id];
-  const views = [
-    ['full', 'Vedere frontală', '1/5 · Ansamblu'],
-    ['zoom', 'Detaliu textură & finisaj', '2/5 · Textură'],
-    ['left', 'Perspectivă laterală stânga', '3/5 · Unghi 1'],
-    ['right', 'Perspectivă laterală dreapta', '4/5 · Unghi 2'],
-    ['detail', 'Macro cusături / structură', '5/5 · Detaliu']
-  ];
+  const code = 'MX-' + String(p.id).toUpperCase();
+  const save = Math.max(0, (p.newRON || 0) - (p.priceRON || 0));
+  const phone = S.phone || '';
+  const phoneRaw = S.phoneRaw || S.phone || '';
 
-  const shipFast = p.priceRON <= DATA.shipping[0].maxRON ? DATA.shipping[0] : DATA.shipping[1];
-  const freeShip = p.priceRON >= S.freeShipOverRON;
-  const prodCode = '00236500-' + p.id.toUpperCase();
+  let related = inCat(p.cat).filter(x => x.id !== p.id);
+  if (related.length < 4) related = related.concat(P.filter(x => x.cat !== p.cat && x.id !== p.id).sort((a, b) => b.disc - a.disc)).slice(0, 4);
+  else related = related.slice(0, 4);
 
-  return `<div class="p-page-bg">
+  const mainUrl = imgUrl(p);
+  const extraGallery = Array.isArray(p.gallery) ? p.gallery.filter(u => u && u !== mainUrl) : [];
+  const hasRealGallery = extraGallery.length > 0;
+  const galleryImgs = hasRealGallery ? [mainUrl, ...extraGallery].slice(0, 6) : [];
+  const views = [['full', 'Vedere generală'], ['zoom', 'Detaliu textură'], ['left', 'Lateral'], ['detail', 'Detaliu']];
+
+  const specs = [
+    ['Dimensiuni', p.dims],
+    ['Material', p.material],
+    ['Culoare', p.color],
+    ['Stare', s.name ? s.name + (s.short ? ' — ' + s.short : '') : ''],
+    ['Categorie', catName],
+    ['Garanție', S.warrantyYears ? S.warrantyYears + ' ani' : ''],
+    ['Cod produs', code]
+  ].filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== '');
+
+  const montaj = (DATA.services && DATA.services[0]) ? DATA.services[0] : null;
+  const thumbsHtml = hasRealGallery
+    ? galleryImgs.map((u, i) => `<button type="button" class="pd-thumb ${i ? '' : 'on'}" data-v="full" onclick="setProdView('full','Imagine ${i + 1}',this,'${esc(u)}')" aria-label="Imagine ${i + 1}"><img src="${esc(u)}" alt="${esc(p.name)}" loading="lazy"></button>`).join('')
+    : views.map(([k, l], i) => `<button type="button" class="pd-thumb ${i ? '' : 'on'}" data-v="${k}" onclick="setProdView('${k}','${l}',this)" aria-label="${l}">${img(p)}</button>`).join('');
+
+  return `<div class="pd">
   <div class="wrap">
-    <nav class="p-crumb" aria-label="Breadcrumb">
-      <a href="#/acasa">Acasă</a> <span>›</span>
-      <a href="#/produse">Produse</a> <span>›</span>
-      <a href="#/produse?cat=${p.cat}">${CAT[p.cat].name}</a> <span>›</span>
-      <b>${esc(p.name)}</b>
+    <nav class="pd-crumb" aria-label="Breadcrumb">
+      <a href="#/acasa">Acasă</a><span>/</span><a href="#/produse?cat=${esc(p.cat)}">${esc(catName)}</a><span>/</span><b>${esc(p.name)}</b>
     </nav>
 
-    <div class="pp-hybrid">
-      <!-- COLOANA STÂNGA: GALERIE CU THUMBNAILS VERTICALE (STIL XXXLUTZ) -->
-      <div class="gal-col">
-        <div class="gal-wrap">
-          <div class="gal-thumbs" role="tablist" aria-label="Unghiuri vizualizare produs">
-            ${views.map(([vKey, vLabel, vShort], idx) => `
-              <button type="button" class="gal-thumb ${idx === 0 ? 'on' : ''}" data-v="${vKey}" onclick="setProdView('${vKey}','${vLabel}',this)" title="${vLabel}">
-                ${img(p)}
-                <span class="t-lbl">${vShort.split('·')[1].trim()}</span>
-              </button>
-            `).join('')}
-          </div>
-
-          <div>
-            <div class="gal-stage" id="gal-stage" data-view="full">
-              <div class="gal-top-left">
-                <span class="brand-pill"><i></i> COLECȚIA GERMANIA</span>
-                ${stBadge(p)}
-              </div>
-              <div class="gal-top-right">
-                <span class="off">−${p.disc}%</span>
-              </div>
-              ${img(p)}
-              <span class="gal-view-tag" id="gal-view-tag">Vedere frontală · Verificat în Satu Mare</span>
-            </div>
-            <div class="gal-caption">
-              <span>Fotografii și inspecție realizate în depozitul MaxMobila ${S.city}.</span>
-              <span>Cod produs: <b>${prodCode}</b></span>
-            </div>
-          </div>
+    <div class="pd-grid">
+      <!-- Galerie -->
+      <div class="pd-gal">
+        <div class="pd-stage" id="gal-stage" data-view="full">
+          ${p.disc > 0 ? `<span class="pd-off">−${p.disc}%</span>` : ''}
+          <button type="button" class="pd-fav ${isFav ? 'on' : ''}" onclick="toggleFav('${p.id}', this)" aria-label="Salvează la favorite">${isFav ? '♥' : '♡'}</button>
+          ${img(p)}
         </div>
-
-        <div class="trust" style="margin-top:16px">
-          <div>🛡️ Garanție ${S.warrantyYears} ani</div>
-          <div>🔄 Retur 14 zile</div>
-          <div>📍 Showroom ${S.city}</div>
+        <div class="pd-thumbs" role="tablist" aria-label="Imagini produs">
+          ${thumbsHtml}
         </div>
+        <p class="pd-note">Fotografii reale din depozitul nostru din ${esc(S.city)}.</p>
       </div>
 
-      <!-- COLOANA DREAPTA: BUY BOX & INFORMAȚII (FORMAT XXXLUTZ + MAXMOBILA) -->
-      <div class="p-info">
-        <div class="p-eyebrow-row">
-          <span class="p-brand-name">COLECȚIA GERMANIA · ${CAT[p.cat].name}</span>
-          <span class="p-sku">Cod produs: ${prodCode}</span>
-        </div>
-
+      <!-- Informații -->
+      <div class="pd-info">
+        <div class="pd-eyebrow">${esc(catName)} · Colecție Germania</div>
         <h1>${esc(p.name)}</h1>
-        <div class="p-submeta">${meta(p)}${p.dims ? ` · ${esc(p.dims)}` : ''}</div>
+        ${meta(p) ? `<div class="pd-meta">${meta(p)}</div>` : ''}
 
-        <div class="p-badges-bar">
-          <span class="p-outlet-badge">PREȚ OUTLET</span>
+        <div class="pd-price">
+          <span class="pd-now num">${lei(p.priceRON)}</span>
+          ${save > 0 ? `<span class="pd-was">Preț nou în Germania <s>${lei(p.newRON)}</s></span>` : ''}
+        </div>
+        ${save > 0 ? `<div class="pd-save">Economisești ${lei(save)}</div>` : ''}
+
+        <div class="pd-state ${esc(p.state)}">
           ${stBadge(p)}
-          <span class="p-rating"><span class="stars">★★★★★</span> 4.9/5</span>
+          <span>${esc(s.desc || s.short || '')}</span>
+          ${p.defect ? `<span class="pd-defect">Detaliu estetic: ${esc(p.defect)}</span>` : ''}
         </div>
 
-        <!-- SECȚIUNEA DE PREȚ CU DELIMITATOARE ORIZONTALE -->
-        <div class="p-price-panel">
-          <div class="p-was-line">
-            <span>Preț de catalog Germania:</span>
-            <s>${lei(p.newRON)}</s>
-          </div>
-          <div class="p-price-row">
-            <span class="p-price-big num">${lei(p.priceRON)}</span>
-            <span class="p-save-pill">−${p.disc}% (${lei(p.newRON - p.priceRON)})</span>
-          </div>
-          <div class="p-vat-note">
-            Preț cu TVA inclus, plus costuri de livrare · ${freeShip ? '<b style="color:var(--ok)">Transport gratuit inclus</b>' : `Transport de la ${lei(shipFast.priceRON)} (gratuit peste ${lei(S.freeShipOverRON)})`}
-          </div>
+        <div class="pd-stock ${p.stock <= 1 ? 'low' : ''}">
+          <i></i>${p.stock <= 0 ? 'Indisponibil momentan' : p.stock === 1 ? 'Ultima bucată' : `${p.stock} bucăți`} în showroom-ul din ${esc(S.city)}
         </div>
 
-        <!-- ATRIBUTE VIZUALE (EXECUȚIE & DIMENSIUNI) -->
-        <div class="p-attrs">
-          <div>
-            <span class="p-attr-lbl">Execuție: <b>${esc(p.color)} (${esc(p.material)})</b></span>
-            <div class="p-swatch-list">
-              <div class="p-swatch-chip">
-                <span class="p-swatch-dot" style="background:${getColorHex(p.color)}"></span>
-                <span>${esc(p.color)}</span>
-              </div>
-              <div class="p-swatch-chip" style="border-color:var(--line);font-weight:600;color:var(--mut)">
-                <span>Material: <b style="color:var(--ink)">${esc(p.material)}</b></span>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <span class="p-attr-lbl">Dimensiuni (L × Î × A):</span>
-            <div class="p-dim-select">
-              <span>${esc(p.dims || 'Dimensiuni standard de catalog — confirmare telefonică')}</span>
-              <span style="font-size:11.5px;color:var(--ok);font-weight:700">✓ În stoc</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- STAREA PRODUSULUI (SPECIFIC MAXMOBILA) -->
-        <div class="stbox ${p.state}" style="margin:2px 0 12px">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-            ${stBadge(p)}
-            <b style="font-size:12px">${s.short}</b>
-          </div>
-          <span>${s.desc}</span>
-          ${p.defect ? `<span class="def">⚠️ Detaliu estetic: ${esc(p.defect)}</span>` : ''}
-        </div>
-
-        <!-- BUTOANE ACȚIUNE (CANTITATE + INIMIOARĂ PĂTRATĂ + ADAUGĂ ÎN COȘ ROȘU) -->
-        <div class="p-cta-box">
-          <div class="p-cta-main">
-            <div class="qty">
-              <button type="button" onclick="changePQ(-1, ${p.stock})" aria-label="Mai puțin">−</button>
-              <span id="pq">${PQ}</span>
-              <button type="button" onclick="changePQ(1, ${p.stock})" aria-label="Mai mult">+</button>
-            </div>
-            <button type="button" class="fav-btn ${isFav ? 'on' : ''}" onclick="toggleFav('${p.id}', this)" aria-label="Salvează la favorite" title="Salvează la favorite">
-              ${isFav ? '♥' : '♡'}
-            </button>
-            <button type="button" class="btn red" style="flex:1;font-size:14.5px" onclick="addCurrentPQ('${p.id}', false)">
-              ${I.cart} Adaugă în coș
-            </button>
-          </div>
-          <button type="button" class="btn outl block" onclick="addCurrentPQ('${p.id}', true)">
-            Cumpără acum — Comandă rapidă pe o pagină ${I.arrow}
+        <div class="pd-actions">
+          <button type="button" class="pd-btn primary" onclick="openReserveModal('${p.id}')">
+            ${I.calendar}<span>Rezervă gratuit în magazin</span>
           </button>
+          <a class="pd-btn wa" href="${getWhatsAppLink(p)}" target="_blank" rel="noopener">
+            ${I.whatsapp}<span>Scrie-ne pe WhatsApp</span>
+          </a>
+          ${phone ? `<a class="pd-call" href="tel:${esc(phoneRaw)}">${I.phone}<span>Sau sună: <b>${esc(phone)}</b></span></a>` : ''}
+        </div>
+        <p class="pd-reassure">Nu plătești nimic acum. Păstrăm piesa 48 de ore, vii s-o vezi și plătești la ridicare.</p>
+
+        <div class="pd-share">
+          <span>Trimite cuiva</span>
+          <a href="${getShareWhatsAppLink(p)}" target="_blank" rel="noopener" aria-label="Trimite pe WhatsApp" title="WhatsApp">${I.whatsapp}</a>
+          <a href="${getShareFacebookLink(p)}" target="_blank" rel="noopener" aria-label="Distribuie pe Facebook" title="Facebook"><svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.07C24 5.45 18.63.07 12 .07S0 5.45 0 12.07c0 5.99 4.39 10.95 10.13 11.85v-8.38H7.08v-3.47h3.05V9.43c0-3.01 1.79-4.67 4.53-4.67 1.31 0 2.69.24 2.69.24v2.95h-1.51c-1.49 0-1.96.93-1.96 1.87v2.25h3.33l-.53 3.47h-2.8v8.38C19.61 23.03 24 18.06 24 12.07z"/></svg></a>
+          <button type="button" onclick="copyProdLink('${p.id}')" aria-label="Copiază link-ul" title="Copiază link">${I.share}</button>
         </div>
 
-        <!-- DISPONIBILITATE & LIVRARE (STIL XXXLUTZ CU INDICATOR „ÎN STOC ›”) -->
-        <div class="p-avail-box">
-          <div class="p-avail-item">
-            <div class="p-avail-icon">${I.truck}</div>
-            <div class="p-avail-body">
-              <b>Livrare prin ${shipFast.name}</b>
-              <span>Timp estimat de livrare: ${shipFast.days} · Ambalat și asigurat</span><br>
-              <a href="#p-conditii-livrare" onclick="event.preventDefault();const d=document.getElementById('p-conditii-livrare');if(d){d.open=true;d.scrollIntoView({behavior:'smooth'});}">Vezi costuri transport și montaj</a>
-            </div>
-            <span class="p-avail-badge">În stoc</span>
-          </div>
-          <div class="p-avail-item">
-            <div class="p-avail-icon">${I.pin}</div>
-            <div class="p-avail-body">
-              <b>Ridicare / Vizionare în Showroom ${S.city}</b>
-              <span>${p.stock <= 1 ? 'Ultima bucată disponibilă în depozit!' : `${p.stock} bucăți în depozitul din ${S.city}`}</span><br>
-              <a href="#/contact">Verifică adresa și programul magazinului</a>
-            </div>
-            <span class="p-avail-badge ${p.stock <= 1 ? 'low' : ''}">${p.stock <= 1 ? 'Ultima buc.' : 'În stoc'}</span>
-          </div>
-        </div>
+        <dl class="pd-specs">
+          ${specs.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('')}
+        </dl>
 
-        <!-- SECȚIUNEA „DETALII” CU ICONIȚE ȘI LINK „MAI MULTE DETALII ›” -->
-        <div class="p-det-box">
-          <h4>Detalii</h4>
-          <div class="p-det-list">
-            <div class="p-det-row">${I.check} <span>Dimensiuni: <b>${esc(p.dims || 'Standard de catalog')}</b></span></div>
-            <div class="p-det-row">${I.shield} <span>Material & finisaj: <b>${esc(p.material)} · ${esc(p.color)}</b></span></div>
-            <div class="p-det-row">${I.truck} <span>Montaj opțional la domiciliu (${lei(DATA.services[0].priceRON)} / produs)</span></div>
-            <div class="p-det-row">${I.pin} <span>Garanție <b>${S.warrantyYears} ani</b> și retur simplu în 14 zile</span></div>
-          </div>
-          <a class="p-more-link" href="#p-detalii-complete" onclick="event.preventDefault();document.getElementById('p-detalii-complete')?.scrollIntoView({behavior:'smooth'})">Mai multe detalii ›</a>
-        </div>
-
-        <!-- ACORDEOANE SPECIFICAȚII & LIVRARE -->
-        <details class="card" open>
-          <summary>Specificații</summary>
-          <div>
-            <table class="spec">
-              ${[
-                ['Cod produs', prodCode],
-                ['Categorie', CAT[p.cat].name],
-                ['Dimensiuni (L × Î × A)', p.dims || 'Standard (conform modelului)'],
-                ['Material principal', p.material],
-                ['Culoare / Execuție', p.color],
-                ['Stare produs', s.name + ' (' + s.short + ')'],
-                ['Garanție', `${S.warrantyYears} ani`],
-                ['Stoc depozit ' + S.city, p.stock + ' buc.']
-              ].map(([a, b]) => `<tr><td>${a}</td><td><b>${esc(b)}</b></td></tr>`).join('')}
-            </table>
-          </div>
-        </details>
-
-        <details class="card" id="p-conditii-livrare">
-          <summary>Livrare, montaj și retur</summary>
-          <div>
-            ${DATA.shipping.map(x => `<div style="margin-bottom:6px">• <b>${x.name}</b>: ${x.priceRON ? lei(x.priceRON) : 'Gratuit'} (${x.days})${x.maxRON ? ` — valabil pentru colete sub ${lei(x.maxRON)}` : ''}</div>`).join('')}
-            <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--soft)">
-              <b>Livrare gratuită</b> la orice comandă de peste <b>${lei(S.freeShipOverRON)}</b>.<br>
-              <b>Plată acceptată:</b> Ramburs la livrare (numerar), Card bancar sau Ordin de plată (OP).
+        <details class="pd-more">
+          <summary>Comandă online</summary>
+          <div class="pd-more-body">
+            <p>Preferi să comanzi direct de pe site? Adaugă produsul în coș și te sunăm pentru confirmare.</p>
+            <div class="pd-buy-row">
+              <div class="qty">
+                <button type="button" onclick="changePQ(-1, ${p.stock || 1})" aria-label="Mai puțin">−</button>
+                <span id="pq">${PQ}</span>
+                <button type="button" onclick="changePQ(1, ${p.stock || 1})" aria-label="Mai mult">+</button>
+              </div>
+              <button type="button" class="btn ink" style="flex:1" onclick="addCurrentPQ('${p.id}', false)">${I.cart} Adaugă în coș</button>
             </div>
+            ${montaj ? `<p class="pd-small">Montaj opțional: ${lei(montaj.priceRON)} / produs.</p>` : ''}
           </div>
         </details>
       </div>
     </div>
   </div>
+
+  <section class="pd-desc">
+    <div class="wrap pd-desc-in">
+      <h2>Despre produs</h2>
+      ${p.desc ? `<p>${esc(p.desc).replace(/\n/g, '<br>')}</p>` : `<p><b>${esc(p.name)}</b> provine din magazinele din Germania${p.material ? `, realizat din ${esc(p.material)}` : ''}${p.color ? ` în nuanța ${esc(p.color)}` : ''}. Piesa se află fizic în depozitul nostru din ${esc(S.city)}, a fost verificată bucată cu bucată și încadrată corect în starea „${esc(s.name || '')}”.</p>`}
+      <p>Poți veni să o vezi pe viu înainte de a o cumpăra. Te ajutăm cu informații despre transport și montaj la telefon sau pe WhatsApp.</p>
+    </div>
+  </section>
+
+  <section class="pd-trust">
+    <div class="wrap pd-trust-in">
+      <div>${I.pin}<b>Showroom ${esc(S.city)}</b><span>Vezi și testezi înainte să plătești</span></div>
+      <div>${I.check}<b>Stare descrisă clar</b><span>Fiecare piesă verificată de noi</span></div>
+      <div>${I.shield}<b>Garanție ${esc(S.warrantyYears || 2)} ani</b><span>Pe toate produsele din outlet</span></div>
+    </div>
+  </section>
+
+  ${related.length ? `<section class="sec">
+    <div class="wrap">
+      <div class="sh"><div><h2>Îți mai recomandăm</h2></div><a class="more" href="#/produse?cat=${esc(p.cat)}">Vezi toate</a></div>
+      <div class="grid">${related.map(card).join('')}</div>
+    </div>
+  </section>` : ''}
+
+  <div class="p-mobile-sticky-bar">
+    <div class="p-ms-info"><span class="p-ms-price">${lei(p.priceRON)}</span><span class="p-ms-state">${esc(s.name || '')}</span></div>
+    <div class="p-ms-acts">
+      <a href="${getWhatsAppLink(p)}" target="_blank" rel="noopener" class="p-ms-btn wa" aria-label="WhatsApp">${I.whatsapp}</a>
+      <button type="button" class="p-ms-btn reserve" onclick="openReserveModal('${p.id}')">Rezervă gratuit</button>
+    </div>
   </div>
-
-  <!-- SECȚIUNEA EDITORIALĂ CENTRALĂ (DESCRIERE DETALIATĂ CA PE XXXLUTZ.RO) -->
-  <section class="p-editorial" id="p-detalii-complete">
-    <div class="p-ed-wrap">
-      <h2>${esc(p.name)} — Calitate germană la preț de outlet</h2>
-      <p class="p-ed-lead">Design modern, materiale rezistente și o reducere reală de −${p.disc}% față de prețul din magazinele din Germania.</p>
-
-      <h3>Caracteristici generale</h3>
-      <ul class="p-red-bullets">
-        <li>Categorie: <b>${CAT[p.cat].name}</b></li>
-        <li>Material: <b>${esc(p.material)}</b></li>
-        <li>Culoare: <b>${esc(p.color)}</b></li>
-        <li>Dimensiuni: <b>${esc(p.dims || 'Standard de catalog')}</b></li>
-        <li>Stare verificată: <b>${s.name} — ${s.short}</b></li>
-        <li>Economie imediată: <b>${lei(p.newRON - p.priceRON)} (−${p.disc}%)</b></li>
-        <li>Disponibilitate: <b>În stoc propriu (${S.city})</b></li>
-        <li>Garanție inclusă: <b>${S.warrantyYears} ani</b></li>
-      </ul>
-
-      <h3>Despre produs și proveniență</h3>
-      <p>
-        Piesa <b>${esc(p.name)}</b> face parte din selecția noastră de mobilier importat direct din Germania. Realizată din <b>${esc(p.material)}</b> într-o nuanță versatilă de <b>${esc(p.color)}</b>, această piesă îmbină standardele riguroase de fabricație vest-europene cu funcționalitatea de zi cu zi.
-      </p>
-      <p>
-        Spre deosebire de magazinele care comandă marfa pe bază de catalog cu termen de așteptare de 6–10 săptămâni, la <b>${esc(S.name)}</b> fiecare produs se află fizic în depozitul nostru din <b>${S.city}</b>. Este verificat individual de echipa noastră, încadrat corect în starea <b>„${s.name}”</b> și pregătit pentru livrare rapidă sau ridicare directă.
-      </p>
-
-      <h3>Întreținere și recomandări</h3>
-      <ul class="p-red-bullets">
-        <li>Se curăță ușor cu o lavetă moale, ușor umedă</li>
-        <li>Evitați utilizarea detergenților abrazivi sau a solvenților chimici</li>
-        <li>Se livrează ambalat corespunzător pentru protecție maximă la transport</li>
-        <li>La cerere, echipa noastră asigură montajul la domiciliu (${lei(DATA.services[0].priceRON)})</li>
-      </ul>
-
-      <!-- CASETĂ FEEDBACK PAGINĂ -->
-      <div class="p-feedback">
-        <h4>Cât de mulțumit ești de informațiile din această pagină?</h4>
-        <div class="p-fb-grid">
-          ${[
-            ['😞', 'Foarte nemulțumit'],
-            ['😕', 'Nemulțumit'],
-            ['😐', 'Neutru'],
-            ['🙂', 'Mulțumit'],
-            ['😍', 'Foarte mulțumit']
-          ].map(([emo, lbl], idx) => `
-            <button type="button" class="p-fb-item" onclick="ratePage(${idx+1}, '${lbl}', this)">
-              <span>${emo}</span>
-              <small>${lbl}</small>
-            </button>
-          `).join('')}
-        </div>
-        <div id="p-fb-msg" style="font-size:13px;color:var(--ok);font-weight:700;min-height:20px"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- RÂNDUL 1: PRODUSE SIMILARE DIN ACEEAȘI CATEGORIE -->
-  ${similar.length ? `
-  <section class="sec">
-    <div class="wrap">
-      <div class="sh">
-        <div>
-          <h2>Produse similare</h2>
-          <p>Alte piese din categoria ${CAT[p.cat].name.toLowerCase()} disponibile în depozit.</p>
-        </div>
-        <a class="more" href="#/produse?cat=${p.cat}">Vezi toate (${inCat(p.cat).length})</a>
-      </div>
-      <div class="grid">${similar.map(card).join('')}</div>
-    </div>
-  </section>` : ''}
-
-  <!-- RÂNDUL 2: S-AR PUTEA SĂ-ȚI PLACĂ ȘI (CROSS-SELL) -->
-  <section class="sec white">
-    <div class="wrap">
-      <div class="sh">
-        <div>
-          <h2>S-ar putea să-ți placă și</h2>
-          <p>Piese complementare cu cele mai mari reduceri din stoc.</p>
-        </div>
-        <a class="more" href="#/produse?sort=disc">Toate reducerile</a>
-      </div>
-      <div class="grid">${crossSell.map(card).join('')}</div>
-    </div>
-  </section>
-
-  <!-- RÂNDUL 3: PRODUSE VIZUALIZATE RECENT -->
-  ${recentProds.length ? `
-  <section class="sec">
-    <div class="wrap">
-      <div class="sh">
-        <div>
-          <h2>Produse vizualizate recent</h2>
-          <p>Revino rapid la piesele pe care le-ai analizat.</p>
-        </div>
-      </div>
-      <div class="grid">${recentProds.map(card).join('')}</div>
-    </div>
-  </section>` : ''}
-
-  <!-- BANDA CU CELE 6 AVANTAJE ALE MAGAZINULUI -->
-  <section class="p-adv-sec">
-    <div class="wrap">
-      <h2>Avantajele magazinului ${esc(S.name)} Outlet</h2>
-      <div class="p-adv-grid">
-        <div class="p-adv-card">
-          <div class="p-adv-ic">${I.shield}</div>
-          <b>Calitate Germană</b>
-          <span>Mobilier original din rețelele de magazine din Germania</span>
-        </div>
-        <div class="p-adv-card">
-          <div class="p-adv-ic"><span style="font:900 14px var(--fd)">%</span></div>
-          <b>Prețuri de Outlet</b>
-          <span>Economisești până la 70% față de prețul de catalog</span>
-        </div>
-        <div class="p-adv-card">
-          <div class="p-adv-ic">${I.pin}</div>
-          <b>Stoc Real în ${S.city}</b>
-          <span>Vezi și testezi mobila în showroom înainte de achiziție</span>
-        </div>
-        <div class="p-adv-card">
-          <div class="p-adv-ic">${I.check}</div>
-          <b>Stare 100% Clară</b>
-          <span>Fiecare piesă este verificată și descrisă transparent</span>
-        </div>
-        <div class="p-adv-card">
-          <div class="p-adv-ic">${I.truck}</div>
-          <b>Livrare & Montaj</b>
-          <span>Transport sigur în toată țara și opțiune de montaj</span>
-        </div>
-        <div class="p-adv-card">
-          <div class="p-adv-ic">↺</div>
-          <b>Garanție ${S.warrantyYears} Ani & Retur</b>
-          <span>Cumpără fără griji, cu drept de retur în 14 zile</span>
-        </div>
-      </div>
-    </div>
-  </section>`;
+</div>`;
 };
 
 const shipHTML = T => T.ships.map(s => `<button class="radio ${T.ship.id === s.id ? 'on' : ''} ${s.disabled ? 'dis' : ''}" ${s.disabled ? 'disabled' : `onclick="setShip('${s.id}')"`}><span class="dot"></span><span><b>${s.name}</b><small>${s.days}${s.disabled ? ` · doar pentru produse sub ${lei(s.maxRON)}` : ''}</small></span><span class="pr">${s.cost ? lei(s.cost) : 'Gratuit'}</span></button>`).join('');
@@ -1527,7 +1537,16 @@ V.nf = (m) => `<div class="wrap" style="padding:70px 20px"><div class="empty"><h
 /* ========================= ROUTER ========================= */
 function parse(){ 
   const rawHash = location.hash || '';
-  const m = rawHash.match(/^#\/([a-z]+)(?:\/([\w-]+))?(?:\?(.*))?$/) || [, 'acasa']; 
+  let m = rawHash.match(/^#\/([a-z]+)(?:\/([\w-]+))?(?:\?(.*))?$/); 
+  if (!m || !m[1]) {
+    const pathMatch = location.pathname.match(/\/produs\/([a-zA-Z0-9_-]+)/);
+    const searchParams = new URLSearchParams(location.search);
+    const pParam = searchParams.get('produs') || searchParams.get('p') || (pathMatch ? pathMatch[1] : null);
+    if (pParam) {
+      return { raw: '#/produs/' + pParam, page: 'produs', id: pParam, q: searchParams };
+    }
+    m = [, 'acasa'];
+  }
   return { raw: rawHash, page: m[1], id: m[2], q: new URLSearchParams(m[3] || '') }; 
 }
 function qset(k, v){ 
@@ -1590,6 +1609,7 @@ function render(keep){
   if (key !== LAST){ PQ = 1; if (page !== 'checkout') ERR = []; }
   
   v.innerHTML = (page === 'produs' || page === 'comanda') ? V[page](id) : (V[page] || V.acasa)(q);
+  document.body.classList.toggle('has-sticky-bar', page === 'produs' && !!byId(P, id));
   renderTop();
   if (keep || key === LAST) window.scrollTo(0, y);
   else if (page === 'acasa' && q.get('f')) document.getElementById('faq').scrollIntoView();
@@ -1609,6 +1629,10 @@ function render(keep){
   window.setType = setType;
   window.placeOrder = placeOrder;
   window.toast = toast;
+  window.openReserveModal = openReserveModal;
+  window.closeReserveModal = closeReserveModal;
+  window.submitReservation = submitReservation;
+  window.copyProdLink = copyProdLink;
   window.changePQ = function(delta, maxStock) {
     PQ = Math.max(1, Math.min(maxStock || 99, PQ + delta));
     const el = document.getElementById('pq');
@@ -1618,13 +1642,17 @@ function render(keep){
     add(id, PQ);
     if (goCheckout) go('#/checkout');
   };
-  window.setProdView = function(viewMode, label, btnEl) {
+  window.setProdView = function(viewMode, label, btnEl, imgSrc) {
     const stage = document.getElementById('gal-stage');
-    if (stage) stage.setAttribute('data-view', viewMode);
+    if (stage) {
+      stage.setAttribute('data-view', viewMode || 'full');
+      const stageImg = stage.querySelector('img');
+      if (stageImg && imgSrc) stageImg.src = imgSrc;
+    }
     const tag = document.getElementById('gal-view-tag');
-    if (tag) tag.textContent = label + ' · Verificat în Satu Mare';
+    if (tag && label) tag.textContent = label + ' · Verificat în Satu Mare';
     if (btnEl && btnEl.parentElement) {
-      btnEl.parentElement.querySelectorAll('.gal-thumb').forEach(b => b.classList.remove('on'));
+      btnEl.parentElement.querySelectorAll('.pd-thumb, .gal-thumb').forEach(b => b.classList.remove('on'));
       btnEl.classList.add('on');
     }
   };
@@ -1661,7 +1689,7 @@ function render(keep){
     fetch(window.MAXMOBILA_AJAX_URL, { method: 'POST', body: fd }).catch(e => console.log('Notice:', e));
   }
   form.reset();
-  toast('Mesaj trimis cu succes! Revenim ?n maximum 24h.');
+  toast('Mesaj trimis cu succes! Revenim în maximum 24h.');
 };
 
   function initApp() {
